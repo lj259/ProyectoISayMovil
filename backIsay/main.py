@@ -2,9 +2,27 @@ from fastapi import FastAPI
 from typing import List
 from pydantic import BaseModel
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime  
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+
+# Configuración de la base de datos
+SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@localhoost/lanaapp"
+#Ejemplo: "mysql+mysqlconnector://root:password@127.0.0.1/pagosdb"
+engine = create_engine(SQLALCHEMY_DATABASE_URL) 
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
 
 app = FastAPI()
+
+def get_db(): 
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Simulamos una "base de datos"
 transacciones = [
