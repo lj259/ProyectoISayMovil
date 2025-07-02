@@ -1,80 +1,103 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from typing import List
 from pydantic import BaseModel
 from collections import defaultdict
-from datetime import datetime  
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date
+from datetime import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, relationship
 
-# Configuración de la base de datos
-SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@localhoost/lanaapp"
-#Ejemplo: "mysql+mysqlconnector://root:password@127.0.0.1/pagosdb"
-engine = create_engine(SQLALCHEMY_DATABASE_URL) 
+
+SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@127.0.0.1/lanaapp"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
+
+
+class Categoria(Base):
+    __tablename__ = "categorias"
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(50))
+    tipo = Column(String(50))  # ingreso, egreso, ahorro
+    usuario_id = Column(Integer)
+    es_predeterminada = Column(Boolean)
+
+class Transaccion(Base):
+    __tablename__ = "transacciones"
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer)
+    monto = Column(Float)
+    categoria_id = Column(Integer, ForeignKey("categorias.id"))
+    tipo = Column(String(50))
+    descripcion = Column(String(255))
+    fecha = Column(Date)
+    es_recurrente = Column(Boolean)
+    id_recurrente = Column(Integer)
+    fecha_creacion = Column(Date)
+
+    categoria = relationship("Categoria", backref="transacciones")
 
 app = FastAPI()
 
-def get_db(): 
+def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# Simulamos una "base de datos"
-transacciones = [
-    {"id": 1, "usuario_id": 1, "monto": 1000, "tipo": "ingreso", "categoria": "Sueldo", "fecha": "2025-01-10"},
-    {"id": 2, "usuario_id": 1, "monto": 500, "tipo": "egreso", "categoria": "Comida", "fecha": "2025-01-15"},
-    {"id": 3, "usuario_id": 1, "monto": 200, "tipo": "egreso", "categoria": "Transporte", "fecha": "2025-02-01"},
-    {"id": 4, "usuario_id": 1, "monto": 300, "tipo": "ingreso", "categoria": "Freelance", "fecha": "2025-02-03"},
-    {"id": 5, "usuario_id": 1, "monto": 100, "tipo": "ahorro", "categoria": "Banco", "fecha": "2025-03-05"},
-    {"id": 6, "usuario_id": 1, "monto": 400, "tipo": "ahorro", "categoria": "Banco", "fecha": "2025-03-20"},
-]
-
-
 MESES_ES = {
     1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
     7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
 }
 
-# 1. Endpoint: Distribución por categoría (gráfico circular)
+#  Endpoint 1: Gráfico circular
+
 class CategoriaTotal(BaseModel):
     categoria: str
     total: float
 
 @app.get("/graficas/categorias", response_model=List[CategoriaTotal])
-def graficas_por_categoria(tipo: str, usuario_id: int = 1):
+def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
     """
-    Devuelve el total por categoría según tipo (ingreso, egreso o ahorro)
+    Devuelve total por categoría según el tipo (ingreso, egreso, ahorro)
     """
     totales = defaultdict(float)
 
+    transacciones = db.query(Transaccion).join(Categoria).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == tipo
+    ).all()
+
     for t in transacciones:
-        if t["usuario_id"] == usuario_id and t["tipo"] == tipo:
-            totales[t["categoria"]] += t["monto"]
+        if t.categoria and t.categoria.nombre:
+            totales[t.categoria.nombre] += t.monto
 
     return [{"categoria": cat, "total": total} for cat, total in totales.items()]
 
-# 2. Endpoint: Tendencia mensual (gráfico de barras)
+# Endpoint 2: Gráfico de barras
+
 class TendenciaMensual(BaseModel):
     mes: str
     total: float
 
 @app.get("/graficas/tendencias", response_model=List[TendenciaMensual])
-def tendencias_mensuales(tipo: str, usuario_id: int = 1):
+def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
     """
-    Devuelve la suma mensual de transacciones por tipo (ingreso, egreso o ahorro)
+    Devuelve total mensual por tipo (ingreso, egreso, ahorro)
     """
     totales_por_mes = defaultdict(float)
 
+    transacciones = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == tipo
+    ).all()
+
     for t in transacciones:
-        if t["usuario_id"] == usuario_id and t["tipo"] == tipo:
-            fecha = datetime.strptime(t["fecha"], "%Y-%m-%d")
-            mes = fecha.month
-            totales_por_mes[mes] += t["monto"]
+        if t.fecha:
+            mes = t.fecha.month
+            totales_por_mes[mes] += t.monto
 
     return [
         {"mes": MESES_ES[mes], "total": totales_por_mes[mes]}
