@@ -8,7 +8,7 @@ class Presupuesto(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     categoria_id = Column(Integer, ForeignKey("categorias.id"))
     monto = Column(Float)
-    año =Column(Integer)
+    ano =Column(Integer)
     mes = Column(Integer)
     fecha_creacion = Column(Date)
     fecha_actualizacion = Column(Date)
