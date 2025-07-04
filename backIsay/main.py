@@ -31,11 +31,11 @@ def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
     if user_in_db:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
 
-    hashed_password = pwd_context.hash(user.contraseña)
+    contrasena = pwd_context.hash(user.contraseña)
     nuevo_usuario = models.Usuario(
         nombre_usuario=user.nombre_usuario,
         correo=user.correo,
-        contraseña_hash=hashed_password,
+        contraseña=contrasena,
         telefono=user.telefono
     )
     db.add(nuevo_usuario)
@@ -47,7 +47,7 @@ def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
 @app.post("/login")
 def login(user: schemas.UsuarioLogin, db: Session = Depends(get_db)):
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
-    if not usuario or not pwd_context.verify(user.contraseña, usuario.contraseña_hash):
+    if not usuario or not pwd_context.verify(user.contraseña, usuario.contraseña):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
-    return {"mensaje": "Inicio de sesión exitoso", "usuario_id": usuario.id}
+    return {"mensaje": "Inicio de sesión exitoso", "usuario": usuario.nombre_usuario}
