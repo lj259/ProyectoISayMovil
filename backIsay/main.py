@@ -9,10 +9,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import date, datetime
 
-# --- Configuración BD ---
+# Conexión a base de datos MySQL
 DATABASE_URL = "mysql+pymysql://root:@localhost/lanaapp"
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
 # --- Modelos SQLAlchemy ---
