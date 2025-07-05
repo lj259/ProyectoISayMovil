@@ -7,13 +7,14 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Bool
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 
-
+# Configuración de la base de datos
 SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@127.0.0.1/lanaapp"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# Modelos de la base de datos
 
 class Categoria(Base):
     __tablename__ = "categorias"
