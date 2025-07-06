@@ -6,9 +6,10 @@ from sqlalchemy import (
     ForeignKey, String, Date, Enum, Boolean
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, relationship
 from datetime import date, datetime
 from passlib.context import CryptContext
+from collections import defaultdict
 
 DATABASE_URL = "mysql+pymysql://root:@localhost/lanaapp"
 engine = create_engine(DATABASE_URL)
@@ -35,6 +36,7 @@ class Categoria(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     es_predeterminada = Column(Boolean, default=False)
 
+
 class Presupuesto(Base):
     __tablename__ = "presupuestos"
     id = Column(Integer, primary_key=True, index=True)
@@ -59,6 +61,7 @@ class Transaccion(Base):
     id_recurrente = Column(Integer, nullable=True)
     fecha_creacion = Column(TIMESTAMP, nullable=False, server_default="CURRENT_TIMESTAMP")
 
+
 class PagoFijo(Base):
     __tablename__ = "pagos_fijos"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -66,6 +69,10 @@ class PagoFijo(Base):
     descripcion = Column(String(255), index=True)
     monto = Column(Float)
     fecha = Column(Date)
+
+
+
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -143,6 +150,18 @@ class PagoFijo(PagoFijoBase):
     class Config:
         orm_mode = True
 
+class CategoriaTotal(BaseModel):
+    categoria: str
+    total: float
+
+class TendenciaMensual(BaseModel):
+    mes: str
+    total: float
+
+class ResumenFinanciero(BaseModel):
+    total_ingresos: float
+    total_egresos: float
+    balance: float
 def get_db():
     db = SessionLocal()
     try:
@@ -345,3 +364,80 @@ def listar_pagos_fijos_por_usuario(usuario_id: int, db: Session = Depends(get_db
 @app.get("/")
 def home():
     return {"message": "Bienvenido a la API de LanaApp"}
+
+# --- Rutas de Resumen Financiero ---
+
+MESES_ES = {
+    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+    7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+}
+
+#  Endpoint 1: Gráfico circular
+
+@app.get("/graficas/categorias", response_model=List[CategoriaTotal], tags=["Gráficas"])
+def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
+    """
+    Devuelve total por categoría según el tipo (ingreso, egreso, ahorro)
+    """
+    totales = defaultdict(float)
+
+    transacciones = db.query(Transaccion).join(Categoria).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == tipo
+    ).all()
+
+    for t in transacciones:
+        if t.categoria and t.categoria.nombre:
+            totales[t.categoria.nombre] += t.monto
+
+    return [{"categoria": cat, "total": total} for cat, total in totales.items()]
+
+# Endpoint 2: Gráfico de barras
+
+@app.get("/graficas/tendencias", response_model=List[TendenciaMensual], tags=["Gráficas"])
+def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
+    """
+    Devuelve total mensual por tipo (ingreso, egreso, ahorro)
+    """
+    totales_por_mes = defaultdict(float)
+
+    transacciones = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == tipo
+    ).all()
+
+    for t in transacciones:
+        if t.fecha:
+            mes = t.fecha.month
+            totales_por_mes[mes] += t.monto
+
+    return [
+        {"mes": MESES_ES[mes], "total": totales_por_mes[mes]}
+        for mes in sorted(totales_por_mes.keys())
+    ] 
+
+# Endpoint 3: Resumen financiero
+
+@app.get("/resumen", response_model=ResumenFinanciero , tags=["Resumen Financiero"])
+def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
+    
+    ingresos = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == "ingreso"
+    ).all()
+    
+    egresos = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == "egreso"
+    ).all()
+    
+    total_ingresos = sum(t.monto for t in ingresos)
+    total_egresos = sum(t.monto for t in egresos)
+    balance = total_ingresos - total_egresos
+
+    return {
+        "total_ingresos": total_ingresos,
+        "total_egresos": total_egresos,
+        "balance": balance
+    }
+
