@@ -1,14 +1,15 @@
+# routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, date
 from typing import List, Optional
 from collections import defaultdict
 from database import get_db
-from models import Usuario, Presupuesto, Transaccion, PagoFijo, Categoria
+from models import Usuario, Presupuesto, Transaccion, PagoFijo, Categoria 
 from schemas import (
-    UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin,
-    PresupuestoBase, PresupuestoCreate, Presupuesto,
-    TransaccionBase, TransaccionCreate, Transaccion,
-    PagoFijoBase, PagoFijoCreate, PagoFijo,
+    UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin, 
+    PresupuestoBase, PresupuestoCreate, Presupuesto as SchemaPresupuesto, 
+    TransaccionBase, TransaccionCreate, Transaccion as SchemaTransaccion, 
+    PagoFijoBase, PagoFijoCreate, PagoFijo as SchemaPagoFijo, 
     CategoriaTotal, TendenciaMensual, ResumenFinanciero
 )
 from passlib.context import CryptContext
@@ -25,9 +26,13 @@ MESES_ES = {
 # Endpoints de Usuarios
 @router.post("/register", response_model=SchemaUsuario, tags=["Usuarios"])
 def register(user: UsuarioCreate, db: Session = Depends(get_db)):
-    user_in_db = db.query(Usuario).filter(Usuario.correo == user.correo).first()
-    if user_in_db:
+    user_in_db_email = db.query(Usuario).filter(Usuario.correo == user.correo).first()
+    if user_in_db_email:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
+
+    user_in_db_username = db.query(Usuario).filter(Usuario.nombre_usuario == user.nombre_usuario).first()
+    if user_in_db_username:
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
 
     hashed_password = pwd_context.hash(user.contraseña)
     nuevo_usuario = Usuario(
@@ -58,18 +63,18 @@ def login(user: UsuarioLogin, db: Session = Depends(get_db)):
     }
 
 # Endpoints de Presupuestos
-@router.get("/presupuestos", response_model=List[Presupuesto], tags=["Presupuestos"])
+@router.get("/presupuestos", response_model=List[SchemaPresupuesto], tags=["Presupuestos"])
 def listar_presupuestos(db: Session = Depends(get_db)):
     return db.query(Presupuesto).all()
 
-@router.get("/presupuestos/{presupuesto_id}", response_model=Presupuesto, tags=["Presupuestos"])
+@router.get("/presupuestos/{presupuesto_id}", response_model=SchemaPresupuesto, tags=["Presupuestos"])
 def obtener_presupuesto(presupuesto_id: int, db: Session = Depends(get_db)):
     presupuesto = db.query(Presupuesto).filter(Presupuesto.id == presupuesto_id).first()
     if not presupuesto:
         raise HTTPException(status_code=404, detail="Presupuesto no encontrado")
     return presupuesto
 
-@router.post("/presupuestos", response_model=Presupuesto, tags=["Presupuestos"])
+@router.post("/presupuestos", response_model=SchemaPresupuesto, tags=["Presupuestos"])
 def crear_presupuesto(presupuesto: PresupuestoCreate, db: Session = Depends(get_db)):
     db_presupuesto = Presupuesto(**presupuesto.dict())
     db.add(db_presupuesto)
@@ -77,7 +82,7 @@ def crear_presupuesto(presupuesto: PresupuestoCreate, db: Session = Depends(get_
     db.refresh(db_presupuesto)
     return db_presupuesto
 
-@router.put("/presupuestos/{presupuesto_id}", response_model=Presupuesto, tags=["Presupuestos"])
+@router.put("/presupuestos/{presupuesto_id}", response_model=SchemaPresupuesto, tags=["Presupuestos"])
 def actualizar_presupuesto(presupuesto_id: int, presupuesto: PresupuestoCreate, db: Session = Depends(get_db)):
     db_presupuesto = db.query(Presupuesto).filter(Presupuesto.id == presupuesto_id).first()
     if not db_presupuesto:
@@ -101,18 +106,18 @@ def eliminar_presupuesto(presupuesto_id: int, db: Session = Depends(get_db)):
     return {"mensaje": "Presupuesto eliminado correctamente"}
 
 # Endpoints de Transacciones
-@router.get("/transacciones", response_model=List[Transaccion], tags=["Transacciones"])
+@router.get("/transacciones", response_model=List[SchemaTransaccion], tags=["Transacciones"])
 def listar_transacciones(db: Session = Depends(get_db)):
     return db.query(Transaccion).all()
 
-@router.get("/transacciones/{transaccion_id}", response_model=Transaccion, tags=["Transacciones"])
+@router.get("/transacciones/{transaccion_id}", response_model=SchemaTransaccion, tags=["Transacciones"])
 def obtener_transaccion(transaccion_id: int, db: Session = Depends(get_db)):
     transaccion = db.query(Transaccion).filter(Transaccion.id == transaccion_id).first()
     if not transaccion:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     return transaccion
 
-@router.post("/transacciones", response_model=Transaccion, tags=["Transacciones"])
+@router.post("/transacciones", response_model=SchemaTransaccion, tags=["Transacciones"])
 def agregar_transaccion(transaccion: TransaccionCreate, db: Session = Depends(get_db)):
     db_transaccion = Transaccion(**transaccion.dict())
     db.add(db_transaccion)
@@ -120,7 +125,7 @@ def agregar_transaccion(transaccion: TransaccionCreate, db: Session = Depends(ge
     db.refresh(db_transaccion)
     return db_transaccion
 
-@router.put("/transacciones/{transaccion_id}", response_model=Transaccion, tags=["Transacciones"])
+@router.put("/transacciones/{transaccion_id}", response_model=SchemaTransaccion, tags=["Transacciones"])
 def actualizar_transaccion(transaccion_id: int, transaccion: TransaccionCreate, db: Session = Depends(get_db)):
     db_transaccion = db.query(Transaccion).filter(Transaccion.id == transaccion_id).first()
     if not db_transaccion:
@@ -144,21 +149,21 @@ def eliminar_transaccion(transaccion_id: int, db: Session = Depends(get_db)):
     return {"mensaje": "Transacción eliminada correctamente"}
 
 # Endpoints de Pagos Fijos
-@router.get("/pagos-fijos", response_model=List[PagoFijo], tags=["Pagos Fijos"])
+@router.get("/pagos-fijos", response_model=List[SchemaPagoFijo], tags=["Pagos Fijos"])
 def listar_pagos_fijos(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(PagoFijo)
     if usuario_id:
         query = query.filter(PagoFijo.usuario_id == usuario_id)
     return query.all()
 
-@router.get("/pagos-fijos/{pago_id}", response_model=PagoFijo, tags=["Pagos Fijos"])
+@router.get("/pagos-fijos/{pago_id}", response_model=SchemaPagoFijo, tags=["Pagos Fijos"])
 def obtener_pago_fijo(pago_id: int, db: Session = Depends(get_db)):
     pago = db.query(PagoFijo).filter(PagoFijo.id == pago_id).first()
     if not pago:
         raise HTTPException(status_code=404, detail="Pago fijo no encontrado")
     return pago
 
-@router.post("/pagos-fijos", response_model=PagoFijo, tags=["Pagos Fijos"])
+@router.post("/pagos-fijos", response_model=SchemaPagoFijo, tags=["Pagos Fijos"])
 def crear_pago_fijo(pago: PagoFijoCreate, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.id == pago.usuario_id).first()
     if not usuario:
@@ -179,7 +184,7 @@ def crear_pago_fijo(pago: PagoFijoCreate, db: Session = Depends(get_db)):
     db.refresh(db_pago)
     return db_pago
 
-@router.put("/pagos-fijos/{pago_id}", response_model=PagoFijo, tags=["Pagos Fijos"])
+@router.put("/pagos-fijos/{pago_id}", response_model=SchemaPagoFijo, tags=["Pagos Fijos"])
 def actualizar_pago_fijo(pago_id: int, pago: PagoFijoCreate, db: Session = Depends(get_db)):
     db_pago = db.query(PagoFijo).filter(PagoFijo.id == pago_id).first()
     if not db_pago:
@@ -206,7 +211,7 @@ def eliminar_pago_fijo(pago_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"mensaje": "Pago fijo eliminado correctamente"}
 
-@router.get("/usuarios/{usuario_id}/pagos-fijos", response_model=List[PagoFijo], tags=["Pagos Fijos"])
+@router.get("/usuarios/{usuario_id}/pagos-fijos", response_model=List[SchemaPagoFijo], tags=["Pagos Fijos"])
 def listar_pagos_fijos_por_usuario(usuario_id: int, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
@@ -218,15 +223,16 @@ def listar_pagos_fijos_por_usuario(usuario_id: int, db: Session = Depends(get_db
 @router.get("/graficas/categorias", response_model=List[CategoriaTotal], tags=["Gráficas"])
 def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
     totales = defaultdict(float)
-
-    transacciones = db.query(Transaccion).join(Categoria).filter(
+    transacciones_con_categorias = db.query(Transaccion, Categoria.nombre).join(
+        Categoria, Transaccion.categoria_id == Categoria.id
+    ).filter(
         Transaccion.usuario_id == usuario_id,
         Transaccion.tipo == tipo
     ).all()
 
-    for t in transacciones:
-        if t.categoria and t.categoria.nombre:
-            totales[t.categoria.nombre] += t.monto
+    for t, categoria_nombre in transacciones_con_categorias:
+        if categoria_nombre:
+            totales[categoria_nombre] += t.monto
 
     return [{"categoria": cat, "total": total} for cat, total in totales.items()]
 
