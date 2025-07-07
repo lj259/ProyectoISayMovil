@@ -14,6 +14,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from passlib.context import CryptContext
 
+from typing import Literal, Optional, List
+from datetime import datetime
+
+
 # Función simulada de envío de email
 def send_recovery_email(email: str, token: str):
     print(f"[EMAIL] Para {email}: usa este token → {token}")
@@ -85,8 +89,21 @@ class PasswordResetDB(Base):
     token      = Column(String(100), unique=True, index=True, nullable=False)
     expires_at = Column(TIMESTAMP, nullable=False)
 
-# Crear tablas si no existen
+class NotificacionDB(Base):
+    __tablename__ = "notificaciones"
+    id               = Column(Integer, primary_key=True, index=True)
+    usuario_id       = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    tipo             = Column(Enum('correo','sms'), nullable=False)
+    asunto           = Column(String(100), nullable=False)
+    mensaje          = Column(String, nullable=False)
+    fue_enviada      = Column(Boolean, default=False)
+    fecha_creacion   = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    fecha_programada = Column(TIMESTAMP, nullable=True)
+    fecha_envio      = Column(TIMESTAMP, nullable=True)
+
+# Vuelve a crear tablas
 Base.metadata.create_all(bind=engine)
+
 
 # --- Schemas Pydantic ---
 class UsuarioBase(BaseModel):
@@ -176,6 +193,26 @@ class ResumenFinanciero(BaseModel):
     total_egresos: float
     balance: float
 
+
+class NotificacionBase(BaseModel):
+    usuario_id: int
+    tipo: Literal['correo','sms']
+    asunto: str
+    mensaje: str
+    fecha_programada: Optional[datetime] = None
+
+class NotificacionCreate(NotificacionBase):
+    pass
+
+class NotificacionRead(NotificacionBase):
+    id: int
+    fue_enviada: bool
+    fecha_creacion: datetime
+    fecha_envio: Optional[datetime]
+    class Config:
+        orm_mode = True
+
+    
 # Dependencia de DB
 def get_db():
     db = SessionLocal()
@@ -183,6 +220,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+        
 
 # Inicialización de la app
 app = FastAPI(title="LanaApp API", version="1.0.0")
@@ -439,3 +478,43 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
     total_ing = sum(t.monto for t in ing)
     total_eg  = sum(t.monto for t in eg)
     return {"total_ingresos":total_ing,"total_egresos":total_eg,"balance":total_ing-total_eg}
+
+# --- Rutas Notificaciones ---
+@app.get("/notificaciones", response_model=List[NotificacionRead], tags=["Notificaciones"])
+def listar_notificaciones(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
+    q = db.query(NotificacionDB)
+    if usuario_id is not None:
+        q = q.filter(NotificacionDB.usuario_id == usuario_id)
+    return q.all()
+
+@app.get("/notificaciones/{notif_id}", response_model=NotificacionRead, tags=["Notificaciones"])
+def obtener_notificacion(notif_id: int, db: Session = Depends(get_db)):
+    n = db.query(NotificacionDB).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    return n
+
+@app.post("/notificaciones", response_model=NotificacionRead, status_code=201, tags=["Notificaciones"])
+def crear_notificacion(payload: NotificacionCreate, db: Session = Depends(get_db)):
+    if not db.query(UsuarioDB).get(payload.usuario_id):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    n = NotificacionDB(**payload.dict())
+    db.add(n); db.commit(); db.refresh(n)
+    return n
+
+@app.put("/notificaciones/{notif_id}", response_model=NotificacionRead, tags=["Notificaciones"])
+def actualizar_notificacion(notif_id: int, datos: NotificacionCreate, db: Session = Depends(get_db)):
+    n = db.query(NotificacionDB).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    for k, v in datos.dict().items():
+        setattr(n, k, v)
+    db.commit(); db.refresh(n)
+    return n
+
+@app.delete("/notificaciones/{notif_id}", status_code=204, tags=["Notificaciones"])
+def eliminar_notificacion(notif_id: int, db: Session = Depends(get_db)):
+    n = db.query(NotificacionDB).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    db.delete(n); db.commit()
