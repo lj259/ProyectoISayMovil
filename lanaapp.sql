@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 -- phpMyAdmin SQL Dump
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
@@ -27,6 +28,37 @@ SET time_zone = "+00:00";
 -- Estructura de tabla para la tabla `categorias`
 --
 
+=======
+
+-- Creación de la base de datos y selección
+CREATE DATABASE IF NOT EXISTS `lanaapp`
+  DEFAULT CHARACTER SET = utf8mb4
+  COLLATE = utf8mb4_general_ci;
+USE `lanaapp`;
+
+-- Tabla usuarios
+DROP TABLE IF EXISTS `usuarios`;
+CREATE TABLE `usuarios` (
+  `id`                INT            NOT NULL AUTO_INCREMENT,
+  `nombre_usuario`    VARCHAR(50)    NOT NULL,
+  `correo`            VARCHAR(100)   NOT NULL,
+  `contraseña`   VARCHAR(255)   NOT NULL,
+  `telefono`          VARCHAR(20)    DEFAULT NULL,
+  `esta_activo`       TINYINT(1)     DEFAULT '1',
+  `fecha_creacion`    TIMESTAMP      NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_actualizacion` TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_usuario_nombre` (`nombre_usuario`),
+  UNIQUE KEY `uq_usuario_correo` (`correo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+ALTER TABLE usuarios
+  CHANGE COLUMN `contraseña` `contraseña` VARCHAR(255) NOT NULL;
+
+-- Tabla categorías
+DROP TABLE IF EXISTS `categorias`;
+>>>>>>> Stashed changes
 CREATE TABLE `categorias` (
   `id` int NOT NULL,
   `nombre` varchar(50) NOT NULL,
@@ -35,12 +67,17 @@ CREATE TABLE `categorias` (
   `es_predeterminada` tinyint(1) DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+<<<<<<< Updated upstream
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `notificaciones`
 --
 
+=======
+-- Tabla notificaciones
+DROP TABLE IF EXISTS `notificaciones`;
+>>>>>>> Stashed changes
 CREATE TABLE `notificaciones` (
   `id` int NOT NULL,
   `usuario_id` int NOT NULL,
@@ -53,12 +90,17 @@ CREATE TABLE `notificaciones` (
   `fecha_envio` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+<<<<<<< Updated upstream
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `pagos_fijos`
 --
 
+=======
+-- Tabla pagos_fijos
+DROP TABLE IF EXISTS `pagos_fijos`;
+>>>>>>> Stashed changes
 CREATE TABLE `pagos_fijos` (
   `id` int NOT NULL,
   `descripcion` varchar(255) DEFAULT NULL,
@@ -66,12 +108,17 @@ CREATE TABLE `pagos_fijos` (
   `fecha` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+<<<<<<< Updated upstream
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `presupuestos`
 --
 
+=======
+-- Tabla presupuestos
+DROP TABLE IF EXISTS `presupuestos`;
+>>>>>>> Stashed changes
 CREATE TABLE `presupuestos` (
   `id` int NOT NULL,
   `usuario_id` int NOT NULL,
@@ -83,12 +130,17 @@ CREATE TABLE `presupuestos` (
   `fecha_actualizacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+<<<<<<< Updated upstream
 -- --------------------------------------------------------
 
 --
 -- Estructura de tabla para la tabla `transacciones`
 --
 
+=======
+-- Tabla transacciones
+DROP TABLE IF EXISTS `transacciones`;
+>>>>>>> Stashed changes
 CREATE TABLE `transacciones` (
   `id` int NOT NULL,
   `usuario_id` int NOT NULL,
@@ -102,6 +154,7 @@ CREATE TABLE `transacciones` (
   `fecha_creacion` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+<<<<<<< Updated upstream
 -- --------------------------------------------------------
 
 --
@@ -243,3 +296,43 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+=======
+-- Datos de ejemplo
+INSERT INTO `usuarios` (`nombre_usuario`,`correo`,`contraseña_hash`,`telefono`,`esta_activo`)
+VALUES
+ ('juanperez','juan.perez@lanaapp.com','$2b$10$EjemploHash1','555-1234',1),
+ ('mariagonzalez','maria.gonzalez@lanaapp.com','$2b$10$EjemploHash2','555-5678',1);
+
+INSERT INTO `categorias` (`nombre`,`tipo`,`usuario_id`,`es_predeterminada`)
+VALUES
+ ('Salario','ingreso',1,1),
+ ('Freelance','ingreso',1,0),
+ ('Alquiler','gasto',1,1),
+ ('Compras','gasto',1,0),
+ ('Beca','ingreso',2,1),
+ ('Transporte','gasto',2,1);
+
+INSERT INTO `notificaciones` (`usuario_id`,`tipo`,`asunto`,`mensaje`,`fue_enviada`,`fecha_programada`)
+VALUES
+ (1,'correo','Recordatorio presupuesto','Tu presupuesto mensual está por vencer.',0,'2025-07-05 09:00:00'),
+ (2,'sms','Pago fijo próximo','No olvides tu pago fijo de suscripción.',0,'2025-07-10 18:00:00');
+
+INSERT INTO `pagos_fijos` (`descripcion`,`monto`,`fecha`,`usuario_id`)
+VALUES
+ ('Netflix',159.00,'2025-07-15',1),
+ ('Spotify',79.99,'2025-07-20',1),
+ ('Suscripción gimnasio',299.50,'2025-07-05',2);
+
+INSERT INTO `presupuestos` (`usuario_id`,`categoria_id`,`monto`,`ano`,`mes`)
+VALUES
+ (1,3,1200.00,2025,7),
+ (1,4,500.00,2025,7),
+ (2,6,300.00,2025,7);
+
+INSERT INTO `transacciones` (`usuario_id`,`monto`,`categoria_id`,`tipo`,`descripcion`,`fecha`,`es_recurrente`)
+VALUES
+ (1,2500.00,1,'ingreso','Pago de nómina julio','2025-07-01',0),
+ (1,75.50,4,'gasto','Supermercado','2025-07-03',0),
+ (1,159.00,2,'gasto','Netflix','2025-07-15',1),
+ (2,300.00,1,'gasto','Taxi mensual','2025-07-02',1);
+>>>>>>> Stashed changes

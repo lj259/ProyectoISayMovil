@@ -1,6 +1,18 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
+<<<<<<< Updated upstream
+=======
+
+from typing import List
+from fastapi import HTTPException, Depends, BackgroundTasks
+from passlib.context import CryptContext
+import uuid
+from datetime import datetime, timedelta
+
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from pydantic import BaseModel, Field
+>>>>>>> Stashed changes
 from sqlalchemy import (
     create_engine, Column, Integer, Float, DECIMAL, TIMESTAMP,
     ForeignKey, String, Date, Enum, Boolean
@@ -11,12 +23,25 @@ from datetime import date, datetime
 from passlib.context import CryptContext
 from collections import defaultdict
 
+<<<<<<< Updated upstream
+=======
+from typing import Literal, Optional, List
+from datetime import datetime
+
+
+# Función simulada de envío de correo electrónico
+def send_recovery_email(email: str, token: str):
+    print(f"[EMAIL] Para {email}: usa este token → {token}")
+
+# --- Configuración de la base de datos ---
+>>>>>>> Stashed changes
 DATABASE_URL = "mysql+pymysql://root:@localhost/lanaapp"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+<<<<<<< Updated upstream
 class Usuario(Base):
     __tablename__ = "usuarios"
     id = Column(Integer, primary_key=True, index=True)
@@ -29,6 +54,22 @@ class Usuario(Base):
     fecha_actualizacion = Column(TIMESTAMP)
 
 class Categoria(Base):
+=======
+# --- Modelos SQLAlchemy ---
+class UsuarioDB(Base):
+    __tablename__ = "usuarios"
+    id                  = Column(Integer, primary_key=True, index=True)
+    nombre_usuario      = Column(String(50), unique=True, nullable=False)
+    correo              = Column(String(100), unique=True, nullable=False)
+    contraseña          = Column(String(255), nullable=False)  # texto claro
+    telefono            = Column(String(20), nullable=True)
+    esta_activo         = Column(Boolean, default=True)
+    fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(),
+                                onupdate=func.now(), nullable=False)
+    
+class CategoriaDB(Base):
+>>>>>>> Stashed changes
     __tablename__ = "categorias"
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(50), nullable=False)
@@ -76,16 +117,36 @@ class PagoFijo(Base):
 
 Base.metadata.create_all(bind=engine)
 
+<<<<<<< Updated upstream
+=======
+
+# --- Schemas Pydantic ---
+
+>>>>>>> Stashed changes
 class UsuarioBase(BaseModel):
     nombre_usuario: str
     correo: str
     telefono: Optional[str] = None
 
-class UsuarioCreate(UsuarioBase):
+class UsuarioCreate(BaseModel):
+    nombre_usuario: str
+    correo: str
+    contraseña: str     
+    telefono: Optional[str] = None
+
+class UsuarioLogin(BaseModel):
+    correo: str
     contraseña: str
 
+<<<<<<< Updated upstream
 class Usuario(UsuarioBase):
+=======
+class UsuarioRead(BaseModel):
+>>>>>>> Stashed changes
     id: int
+    nombre_usuario: str
+    correo: str
+    telefono: Optional[str]
     esta_activo: bool
     fecha_creacion: datetime
     fecha_actualizacion: datetime
@@ -93,9 +154,7 @@ class Usuario(UsuarioBase):
     class Config:
         orm_mode = True
 
-class UsuarioLogin(BaseModel):
-    correo: str
-    contraseña: str
+
 
 class PresupuestoBase(BaseModel):
     usuario_id: int
@@ -171,6 +230,7 @@ def get_db():
 
 app = FastAPI(title="LanaApp API", version="1.0.0")
 
+<<<<<<< Updated upstream
 # --- Autenticación ---
 @app.post("/register", response_model=Usuario,tags=["Usuarios"])
 def register(user: UsuarioCreate, db: Session = Depends(get_db)):
@@ -185,6 +245,22 @@ def register(user: UsuarioCreate, db: Session = Depends(get_db)):
         contraseña=hashed_password,
         telefono=user.telefono,
         esta_activo=True
+=======
+
+# --- Endpoints Usuarios ---
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@app.post("/register", response_model=UsuarioRead, tags=["Usuarios"])
+def register(user: UsuarioCreate, db: Session = Depends(get_db)):
+    if db.query(UsuarioDB).filter(UsuarioDB.correo == user.correo).first():
+        raise HTTPException(status_code=400, detail="Correo ya registrado")
+    nuevo = UsuarioDB(
+        nombre_usuario=user.nombre_usuario,
+        correo=user.correo,
+        contraseña=user.contraseña,   # guardamos en texto claro
+        telefono=user.telefono
+>>>>>>> Stashed changes
     )
     
     db.add(nuevo_usuario)
@@ -194,8 +270,13 @@ def register(user: UsuarioCreate, db: Session = Depends(get_db)):
 
 @app.post("/login",tags=["Usuarios"])
 def login(user: UsuarioLogin, db: Session = Depends(get_db)):
+<<<<<<< Updated upstream
     usuario = db.query(Usuario).filter(Usuario.correo == user.correo).first()
     if not usuario or not pwd_context.verify(user.contraseña, usuario.contraseña):
+=======
+    u = db.query(UsuarioDB).filter(UsuarioDB.correo == user.correo).first()
+    if not u or u.contraseña != user.contraseña:  # simple comparación
+>>>>>>> Stashed changes
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
     return {
@@ -204,6 +285,84 @@ def login(user: UsuarioLogin, db: Session = Depends(get_db)):
         "usuario_id": usuario.id
     }
 
+<<<<<<< Updated upstream
+=======
+@app.get("/usuarios", response_model=List[UsuarioRead], tags=["Usuarios"])
+def listar_usuarios(db: Session = Depends(get_db)):
+    return db.query(UsuarioDB).all()
+
+@app.get("/usuarios/{usuario_id}", response_model=UsuarioRead, tags=["Usuarios"])
+def obtener_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    u = db.query(UsuarioDB).get(usuario_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return u
+
+@app.post("/password-recovery", tags=["Usuarios"])
+def password_recovery(
+    req: PasswordRecoveryRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    u = db.query(UsuarioDB).filter(UsuarioDB.correo == req.correo).first()
+    mensaje = {"mensaje": "Si el correo existe, recibirás instrucciones por email."}
+    if not u:
+        return mensaje
+    token = str(uuid.uuid4())
+    expires = datetime.utcnow() + timedelta(hours=1)
+    pr = PasswordResetDB(user_id=u.id, token=token, expires_at=expires)
+    db.add(pr); db.commit()
+    background_tasks.add_task(send_recovery_email, u.correo, token)
+    return mensaje
+
+@app.post("/reset-password/{token}", tags=["Usuarios"])
+def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    pr = db.query(PasswordResetDB).filter(PasswordResetDB.token == token).first()
+    if not pr or pr.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    u = db.get(UsuarioDB, pr.user_id)
+    u.contraseña = req.nueva_contraseña    
+    db.delete(pr)
+    db.commit()
+    return {"mensaje": "Contraseña reestablecida correctamente"}
+
+@app.post("/reset-password/{token}", tags=["Usuarios"])
+def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    pr = db.query(PasswordResetDB).filter(PasswordResetDB.token == token).first()
+    if not pr or pr.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    u = db.get(UsuarioDB, pr.user_id)
+    u.contraseña_hash = pwd_context.hash(req.nueva_contraseña)
+    db.delete(pr)
+    db.commit()
+    return {"mensaje": "Contraseña reestablecida correctamente"}
+
+
+# --- Recuperación de contraseña ---
+@app.post("/password-recovery", tags=["Usuarios"])
+def password_recovery(req: PasswordRecoveryRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    u = db.query(UsuarioDB).filter(UsuarioDB.correo == req.correo).first()
+    mensaje = {"mensaje":"Si el correo existe, recibirás instrucciones por email."}
+    if not u:
+        return mensaje
+    token = str(uuid.uuid4())
+    expires = datetime.utcnow() + timedelta(hours=1)
+    pr = PasswordResetDB(user_id=u.id, token=token, expires_at=expires)
+    db.add(pr); db.commit()
+    background_tasks.add_task(send_recovery_email, u.correo, token)
+    return mensaje
+
+@app.post("/reset-password/{token}", tags=["Usuarios"])
+def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    pr = db.query(PasswordResetDB).filter(PasswordResetDB.token == token).first()
+    if not pr or pr.expires_at < datetime.utcnow():
+        raise HTTPException(400, "Token inválido o expirado")
+    u = db.get(UsuarioDB, pr.user_id)
+    u.contraseña_hash = pwd_context.hash(req.nueva_contraseña)
+    db.delete(pr); db.commit()
+    return {"mensaje":"Contraseña reestablecida correctamente"}
+
+>>>>>>> Stashed changes
 # --- Rutas Presupuestos ---
 @app.get("/presupuestos", response_model=List[Presupuesto], tags=["Presupuestos"])
 def listar_presupuestos(db: Session = Depends(get_db)):
