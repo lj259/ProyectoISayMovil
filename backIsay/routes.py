@@ -5,7 +5,7 @@ from collections import defaultdict
 from database import get_db
 from models import Usuario, Presupuesto, Transaccion, PagoFijo, Categoria
 from schemas import (
-    UsuarioCreate, Usuario, UsuarioLogin,
+    UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin,
     PresupuestoBase, PresupuestoCreate, Presupuesto,
     TransaccionBase, TransaccionCreate, Transaccion,
     PagoFijoBase, PagoFijoCreate, PagoFijo,
@@ -22,18 +22,15 @@ MESES_ES = {
     7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
 }
 
-@router.post("/register", response_model=Usuario, tags=["Usuarios"])
+# Endpoints de Usuarios
+@router.post("/register", response_model=SchemaUsuario, tags=["Usuarios"])
 def register(user: UsuarioCreate, db: Session = Depends(get_db)):
-    # Verificar si el usuario ya existe
-    user_in_db = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
+    user_in_db = db.query(Usuario).filter(Usuario.correo == user.correo).first()
     if user_in_db:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
 
-    # Hashear la contraseña
     hashed_password = pwd_context.hash(user.contraseña)
-    
-    # Crear nuevo usuario con el modelo SQLAlchemy
-    nuevo_usuario = models.Usuario(
+    nuevo_usuario = Usuario(
         nombre_usuario=user.nombre_usuario,
         correo=user.correo,
         contraseña=hashed_password,
@@ -43,11 +40,9 @@ def register(user: UsuarioCreate, db: Session = Depends(get_db)):
         fecha_actualizacion=datetime.now()
     )
     
-    # Guardar en la base de datos
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
-    
     return nuevo_usuario
 
 @router.post("/login", tags=["Usuarios"])
@@ -62,6 +57,7 @@ def login(user: UsuarioLogin, db: Session = Depends(get_db)):
         "usuario_id": usuario.id
     }
 
+# Endpoints de Presupuestos
 @router.get("/presupuestos", response_model=List[Presupuesto], tags=["Presupuestos"])
 def listar_presupuestos(db: Session = Depends(get_db)):
     return db.query(Presupuesto).all()
@@ -104,6 +100,7 @@ def eliminar_presupuesto(presupuesto_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"mensaje": "Presupuesto eliminado correctamente"}
 
+# Endpoints de Transacciones
 @router.get("/transacciones", response_model=List[Transaccion], tags=["Transacciones"])
 def listar_transacciones(db: Session = Depends(get_db)):
     return db.query(Transaccion).all()
@@ -146,6 +143,7 @@ def eliminar_transaccion(transaccion_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"mensaje": "Transacción eliminada correctamente"}
 
+# Endpoints de Pagos Fijos
 @router.get("/pagos-fijos", response_model=List[PagoFijo], tags=["Pagos Fijos"])
 def listar_pagos_fijos(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(PagoFijo)
@@ -216,10 +214,7 @@ def listar_pagos_fijos_por_usuario(usuario_id: int, db: Session = Depends(get_db
     
     return db.query(PagoFijo).filter(PagoFijo.usuario_id == usuario_id).all()
 
-@router.get("/")
-def home():
-    return {"message": "Bienvenido a la API de LanaApp"}
-
+# Endpoints de Gráficas y Reportes
 @router.get("/graficas/categorias", response_model=List[CategoriaTotal], tags=["Gráficas"])
 def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
     totales = defaultdict(float)
@@ -263,7 +258,7 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
     
     egresos = db.query(Transaccion).filter(
         Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == "egreso"
+        Transaccion.tipo == "gasto"
     ).all()
     
     total_ingresos = sum(t.monto for t in ingresos)
