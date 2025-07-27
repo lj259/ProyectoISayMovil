@@ -133,4 +133,36 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
         "total_ingresos": total_ingresos,
         "total_egresos": total_egresos,
         "balance": balance
-    }
+    } 
+
+# Endpoint 4: Transacciones
+
+# Modelo para la respuesta
+class TransaccionOut(BaseModel):
+    id: int
+    monto: float
+    tipo: str
+    descripcion: str
+    fecha: str
+    categoria: str
+
+    class Config:
+        orm_mode = True
+
+@app.get("/transacciones", response_model=List[TransaccionOut])
+def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):
+    transacciones = db.query(Transaccion).join(Categoria).filter(
+        Transaccion.usuario_id == usuario_id
+    ).all()
+
+    return [
+        {
+            "id": t.id,
+            "monto": t.monto,
+            "tipo": t.tipo,
+            "descripcion": t.descripcion,
+            "fecha": t.fecha.strftime("%Y-%m-%d"),
+            "categoria": t.categoria.nombre if t.categoria else "Sin categoría"
+        }
+        for t in transacciones
+    ]
