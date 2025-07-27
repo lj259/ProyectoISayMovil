@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from collections import defaultdict
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 
 # Configuración de la base de datos
