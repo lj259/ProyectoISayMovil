@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware  
 from typing import List
 from pydantic import BaseModel
 from collections import defaultdict
@@ -7,7 +8,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Bool
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 
-# Configuración de la base de datos
+
 SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@127.0.0.1/lanaapp"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -40,6 +41,16 @@ class Transaccion(Base):
     categoria = relationship("Categoria", backref="transacciones")
 
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 def get_db():
     db = SessionLocal()
@@ -150,7 +161,7 @@ class TransaccionOut(BaseModel):
 
     class Config:
         orm_mode = True
-Base.metadata.create_all(engine) 
+
 
 @app.get("/transacciones", response_model=List[TransaccionOut])
 def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):

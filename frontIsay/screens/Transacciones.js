@@ -90,7 +90,7 @@ export default function Transacciones() {
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setCategoria(item.categoria);
+    setCategoria(item.tipo); // usamos tipo para llenar el botón correcto
     setDescripcion(item.descripcion);
     setFecha(item.fecha);
     setEditDate(new Date(item.fecha));
@@ -169,7 +169,9 @@ export default function Transacciones() {
   const renderTableRow = ({ item }) => (
     <View style={styles.tableRow}>
       <Text style={styles.tableCell}>{item.monto}</Text>
-      <Text style={styles.tableCell}>{item.categoria.charAt(0).toUpperCase() + item.categoria.slice(1)}</Text>
+      <Text style={styles.tableCell}>
+        {item.tipo ? item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1) : ""}
+      </Text>
       <Text style={styles.tableCell}>{item.descripcion}</Text>
       <Text style={styles.tableCell}>{item.fecha}</Text>
       <View style={[styles.tableCell, styles.actionCell]}>
