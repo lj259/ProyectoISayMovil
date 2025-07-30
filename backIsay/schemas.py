@@ -4,10 +4,10 @@ from pydantic import BaseModel, EmailStr
 class UsuarioCreate(BaseModel):
     nombre_usuario: str
     correo: EmailStr
-    contraseña: str
+    password: str
     telefono: str | None = None
 
 # Datos necesarios para LOGIN
 class UsuarioLogin(BaseModel):
     correo: EmailStr
-    contraseña: str
+    password: str
