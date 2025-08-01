@@ -540,3 +540,17 @@ def eliminar_notificacion(notif_id: int, db: Session = Depends(get_db)):
     if not n:
         raise HTTPException(status_code=404, detail="Notificación no encontrada")
     db.delete(n); db.commit()
+
+@app.put("/usuarios/{usuario_id}", response_model=UsuarioRead, tags=["Usuarios"])
+def actualizar_usuario(usuario_id: int, datos: UsuarioBase, db: Session = Depends(get_db)):
+    u = db.query(UsuarioDB).get(usuario_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    u.nombre_usuario = datos.nombre_usuario
+    u.correo = datos.correo
+    u.telefono = datos.telefono
+
+    db.commit()
+    db.refresh(u)
+    return u
