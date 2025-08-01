@@ -15,7 +15,6 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Modelos de la base de datos
 
 class Categoria(Base):
     __tablename__ = "categorias"
@@ -31,7 +30,7 @@ class Transaccion(Base):
     usuario_id = Column(Integer)
     monto = Column(Float)
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
-    tipo = Column(String(50))  # ahora usamos esto para guardar Ingreso/Gasto
+    tipo = Column(String(50))  # ingreso, egreso, ahorro
     descripcion = Column(String(255))
     fecha = Column(Date)
     es_recurrente = Column(Boolean)
@@ -42,7 +41,7 @@ class Transaccion(Base):
 
 app = FastAPI()
 
-
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -50,7 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 def get_db():
     db = SessionLocal()
@@ -83,7 +81,6 @@ def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends
     ).all()
 
     for t in transacciones:
-        # Si la transacción no tiene categoría_id usamos tipo (Ingreso/Gasto)
         if t.categoria and t.categoria.nombre:
             totales[t.categoria.nombre] += t.monto
         else:
@@ -119,37 +116,45 @@ def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(g
         for mes in sorted(totales_por_mes.keys())
     ] 
 
-# Endpoint 3: Resumen financiero
+# Endpoint 3: Resumen financiero con ahorros
 
 class ResumenFinanciero(BaseModel):
     total_ingresos: float
     total_egresos: float
+    total_ahorros: float
     balance: float
 
 @app.get("/resumen", response_model=ResumenFinanciero)
 def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
-    
     ingresos = db.query(Transaccion).filter(
         Transaccion.usuario_id == usuario_id,
         Transaccion.tipo == "ingreso"
     ).all()
-    
+
     egresos = db.query(Transaccion).filter(
         Transaccion.usuario_id == usuario_id,
         Transaccion.tipo == "egreso"
     ).all()
-    
+
+    ahorros = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == "ahorro"
+    ).all()
+
     total_ingresos = sum(t.monto for t in ingresos)
     total_egresos = sum(t.monto for t in egresos)
-    balance = total_ingresos - total_egresos
+    total_ahorros = sum(t.monto for t in ahorros)
+
+    balance = total_ingresos - total_egresos + total_ahorros
 
     return {
         "total_ingresos": total_ingresos,
         "total_egresos": total_egresos,
+        "total_ahorros": total_ahorros,
         "balance": balance
-    } 
+    }
 
-# Endpoint 4: Transacciones (Listar)
+# Endpoint 4: Transacciones (Listar, Crear, Editar, Eliminar)
 
 class TransaccionOut(BaseModel):
     id: int
@@ -161,7 +166,6 @@ class TransaccionOut(BaseModel):
 
     class Config:
         orm_mode = True
-
 
 @app.get("/transacciones", response_model=List[TransaccionOut])
 def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):
@@ -183,7 +187,7 @@ def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):
 
 class TransaccionCreate(BaseModel):
     monto: float
-    categoria: str  # ingreso o egreso
+    categoria: str  # ingreso, egreso o ahorro
     descripcion: str
     fecha: str  # YYYY-MM-DD
 
