@@ -3,18 +3,19 @@ import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://192.168.100.44:8000";
+const API_URL = "http://192.168.100.44:8000"; 
 
 export default function Dashboard() {
-  const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, total_ahorros: 0, balance: 0 });
+  const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, balance: 0 });
   const [tendencias, setTendencias] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [tipo, setTipo] = useState("egreso"); // Gastos por default
+  const [tipo, setTipo] = useState("egreso"); // Gastos
 
   useEffect(() => {
     fetchResumen();
   }, []);
 
+  
   useEffect(() => {
     fetchTendencias();
     fetchCategorias();
@@ -64,10 +65,6 @@ export default function Dashboard() {
         <View style={styles.card}>
           <Text style={styles.title}>Gastos</Text>
           <Text style={styles.egreso}>${resumen.total_egresos.toFixed(2)}</Text>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.title}>Ahorros</Text>
-          <Text style={styles.ahorro}>${resumen.total_ahorros.toFixed(2)}</Text>
         </View>
         <View style={styles.card}>
           <Text style={styles.title}>Balance</Text>
@@ -128,16 +125,11 @@ const chartConfig = {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  cardContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
+  cardContainer: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
   card: {
-    width: "47%",
+    flex: 1,
     backgroundColor: "#f5f5f5",
-    marginVertical: 5,
+    marginHorizontal: 5,
     padding: 15,
     borderRadius: 10,
     alignItems: "center",
@@ -145,7 +137,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 14, color: "#777" },
   ingreso: { fontSize: 18, color: "#2ecc71", fontWeight: "bold" },
   egreso: { fontSize: 18, color: "#e74c3c", fontWeight: "bold" },
-  ahorro: { fontSize: 18, color: "#ff9800", fontWeight: "bold" },
   balance: { fontSize: 18, color: "#2980b9", fontWeight: "bold" },
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginVertical: 10 },
   chart: { borderRadius: 16 },
