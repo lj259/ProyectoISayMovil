@@ -15,6 +15,14 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 const API_URL = "http://192.168.100.44:8000";
 
+// Función para formatear fecha local y evitar que se sume un día
+const ajustarFecha = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +30,7 @@ export default function Transacciones() {
   // Estados para modal Crear
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
-  const [categoria, setCategoria] = useState(""); // ingreso o egreso
+  const [categoria, setCategoria] = useState(""); // ingreso, egreso o ahorro
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -90,7 +98,7 @@ export default function Transacciones() {
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setCategoria(item.tipo); // usamos tipo para llenar el botón correcto
+    setCategoria(item.tipo.toLowerCase());
     setDescripcion(item.descripcion);
     setFecha(item.fecha);
     setEditDate(new Date(item.fecha));
@@ -169,9 +177,7 @@ export default function Transacciones() {
   const renderTableRow = ({ item }) => (
     <View style={styles.tableRow}>
       <Text style={styles.tableCell}>{item.monto}</Text>
-      <Text style={styles.tableCell}>
-        {item.tipo ? item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1) : ""}
-      </Text>
+      <Text style={styles.tableCell}>{item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}</Text>
       <Text style={styles.tableCell}>{item.descripcion}</Text>
       <Text style={styles.tableCell}>{item.fecha}</Text>
       <View style={[styles.tableCell, styles.actionCell]}>
@@ -190,7 +196,7 @@ export default function Transacciones() {
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
-      setFecha(selectedDate.toISOString().slice(0, 10)); // YYYY-MM-DD
+      setFecha(ajustarFecha(selectedDate));
     }
   };
 
@@ -199,7 +205,7 @@ export default function Transacciones() {
     setEditShowDatePicker(false);
     if (selectedDate) {
       setEditDate(selectedDate);
-      setFecha(selectedDate.toISOString().slice(0, 10));
+      setFecha(ajustarFecha(selectedDate));
     }
   };
 
@@ -272,6 +278,20 @@ export default function Transacciones() {
                   categoria === "egreso" && styles.typeButtonTextSelected
                 ]}>
                   Egreso
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  categoria === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                ]}
+                onPress={() => setCategoria("ahorro")}
+              >
+                <Text style={[
+                  styles.typeButtonText,
+                  categoria === "ahorro" && { color: "#fff" }
+                ]}>
+                  Ahorro
                 </Text>
               </TouchableOpacity>
             </View>
@@ -353,6 +373,20 @@ export default function Transacciones() {
                   categoria === "egreso" && styles.typeButtonTextSelected
                 ]}>
                   Egreso
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  categoria === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                ]}
+                onPress={() => setCategoria("ahorro")}
+              >
+                <Text style={[
+                  styles.typeButtonText,
+                  categoria === "ahorro" && { color: "#fff" }
+                ]}>
+                  Ahorro
                 </Text>
               </TouchableOpacity>
             </View>
@@ -539,6 +573,6 @@ const styles = StyleSheet.create({
   addButtonText: { color: "#fff", fontWeight: "bold" },
   cancelButton: { paddingVertical: 10, paddingHorizontal: 20 },
   cancelButtonText: { color: "#007bff", fontWeight: "bold" },
-  editText: { marginRight: 15, fontSize: 18 },
-  deleteText: { fontSize: 18 },
+  editText: { marginRight: 15, fontSize: 18 }, 
+  deleteText: {fontSize: 18}, 
 });

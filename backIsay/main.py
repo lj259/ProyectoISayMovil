@@ -124,6 +124,7 @@ def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(g
 class ResumenFinanciero(BaseModel):
     total_ingresos: float
     total_egresos: float
+    total_ahorros: float
     balance: float
 
 @app.get("/resumen", response_model=ResumenFinanciero)
@@ -138,14 +139,21 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
         Transaccion.usuario_id == usuario_id,
         Transaccion.tipo == "egreso"
     ).all()
+
+    ahorros = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == "ahorro"
+    ).all()
     
     total_ingresos = sum(t.monto for t in ingresos)
     total_egresos = sum(t.monto for t in egresos)
-    balance = total_ingresos - total_egresos
+    total_ahorros = sum(t.monto for t in ahorros)
+    balance = total_ingresos - total_egresos + total_ahorros
 
     return {
         "total_ingresos": total_ingresos,
         "total_egresos": total_egresos,
+        "total_ahorros": total_ahorros,
         "balance": balance
     } 
 
