@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000'; // Cambia a tu IP si usas celular
+const API_URL = 'http://10.16.35.228:8000'; // Cambia a tu IP si usas celular
 
 export default function RegistroScreen({ navigation }) {
   const [form, setForm] = useState({

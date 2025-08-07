@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000'; 
+const API_URL = 'http://10.16.35.228:8000'; 
 
 export default function LoginScreen({ navigation }) {
   const [correo, setCorreo] = useState('');

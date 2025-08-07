@@ -1,248 +1,18 @@
 # ——— Imports de terceros —————————————————————————————————————
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware  
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
+from typing import List
 from collections import defaultdict
-from datetime import datetime, timedelta, date
-# SQLAlchemy core + func.now()
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Boolean, ForeignKey, DECIMAL, TIMESTAMP, Enum, func
-
+from datetime import datetime
 # SQLAlchemy ORM
-from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
+from sqlalchemy.orm import Session
 
-import uuid
-
-from passlib.context import CryptContext
-
-# ——— Configuración de BD —————————————————————————————————————
-SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root@localhost/lanaapp"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-engine       = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base         = declarative_base()
-pwd_context  = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-
-# --- Modelos SQLAlchemy ---
-
-class UsuarioDB(Base):
-    __tablename__ = "usuarios"
-    id                  = Column(Integer, primary_key=True, index=True)
-    nombre_usuario      = Column(String(50), unique=True, nullable=False)
-    correo              = Column(String(100), unique=True, nullable=False)
-    contraseña          = Column(String(255), nullable=False)  # texto claro
-    telefono            = Column(String(20), nullable=True)
-    esta_activo         = Column(Boolean, default=True)
-    fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(),
-                                onupdate=func.now(), nullable=False)
-    
-class CategoriaDB(Base):
-    __tablename__ = "categorias"
-    id                = Column(Integer, primary_key=True, index=True)
-    nombre            = Column(String(50), nullable=False)
-    tipo              = Column(Enum('ingreso', 'egreso'), nullable=False)
-    usuario_id        = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
-    es_predeterminada = Column(Boolean, default=False)
-
-class PresupuestoDB(Base):
-    __tablename__ = "presupuestos"
-    id                  = Column(Integer, primary_key=True, index=True)
-    usuario_id          = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    categoria_id        = Column(Integer, ForeignKey("categorias.id"), nullable=False)
-    monto               = Column(DECIMAL(10, 2), nullable=False)
-    ano                 = Column(Integer, nullable=False)
-    mes                 = Column(Integer, nullable=False)
-    fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
-
-class TransaccionDB(Base):
-    __tablename__ = "transacciones"
-    id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    monto          = Column(Float, nullable=False)
-    categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
-    tipo           = Column(Enum('ingreso','egreso', 'ahorro'), nullable=False)
-    descripcion    = Column(String(255), nullable=True)
-    fecha          = Column(Date, nullable=False)
-    es_recurrente  = Column(Boolean, default=False)
-    id_recurrente  = Column(Integer, nullable=True)
-    fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-class PagoFijoDB(Base):
-    __tablename__ = "pagos_fijos"
-    id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    descripcion    = Column(String(255), nullable=False)
-    monto          = Column(Float, nullable=False)
-    fecha          = Column(Date, nullable=False)
-    fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-
-class PasswordResetDB(Base):
-    __tablename__ = "password_resets"
-    id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    token      = Column(String(100), unique=True, index=True, nullable=False)
-    expires_at = Column(TIMESTAMP, nullable=False)
-
-class NotificacionDB(Base):
-    __tablename__ = "notificaciones"
-    id               = Column(Integer, primary_key=True, index=True)
-    usuario_id       = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    tipo             = Column(Enum('correo','sms'), nullable=False)
-    asunto           = Column(String(100), nullable=False)
-    mensaje          = Column(String, nullable=False)
-    fue_enviada      = Column(Boolean, default=False)
-    fecha_creacion   = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    fecha_programada = Column(TIMESTAMP, nullable=True)
-    fecha_envio      = Column(TIMESTAMP, nullable=True)
-
-# Vuelve a crear tablas
-Base.metadata.create_all(bind=engine)
-
-# --- Schemas Pydantic ---
-
-# --- Usuarios ---
-class UsuarioBase(BaseModel):
-    nombre_usuario: str
-    correo: str
-    telefono: Optional[str] = None
-
-class UsuarioCreate(BaseModel):
-    nombre_usuario: str
-    correo: str
-    contraseña: str     
-    telefono: Optional[str] = None
-
-class UsuarioLogin(BaseModel):
-    correo: str
-    contraseña: str
-
-class UsuarioRead(BaseModel):
-    id: int
-    nombre_usuario: str
-    correo: str
-    telefono: Optional[str]
-    esta_activo: bool
-    fecha_creacion: datetime
-    fecha_actualizacion: datetime
-    class Config:
-        orm_mode = True
-
-class PasswordRecoveryRequest(BaseModel):
-    correo: str
-
-class PasswordResetRequest(BaseModel):
-    nueva_contraseña: str = Field(..., min_length=6)
-
-# --- Presupuestos ---
-class PresupuestoBase(BaseModel):
-    usuario_id: int
-    categoria_id: int
-    monto: float
-    ano: int
-    mes: int
-
-class PresupuestoCreate(PresupuestoBase): pass
-
-class PresupuestoRead(PresupuestoBase):
-    id: int
-    fecha_creacion: datetime
-    fecha_actualizacion: datetime
-    class Config:
-        orm_mode = True
-
-# --- Transacciones ---
-class TransaccionBase(BaseModel):
-    usuario_id: int
-    monto: float
-    categoria_id: int
-    tipo: str
-    fecha: date
-    descripcion: Optional[str] = None
-    es_recurrente: Optional[bool] = False
-    id_recurrente: Optional[int] = None
-
-class TransaccionCreate(TransaccionBase): pass
-
-class TransaccionRead(TransaccionBase):
-    id: int
-    fecha_creacion: datetime
-    class Config:
-        orm_mode = True
-        
-class TransaccionOut(BaseModel):
-    id: int
-    monto: float
-    tipo: str
-    descripcion: str
-    fecha: str
-    categoria: str
-
-    class Config:
-        orm_mode = True
-        
-# --- Pagos Fijos ---
-class PagoFijoBase(BaseModel):
-    usuario_id: int
-    descripcion: str
-    monto: float
-    fecha: date
-
-class PagoFijoCreate(PagoFijoBase): pass
-
-class PagoFijoRead(PagoFijoBase):
-    id: int
-    fecha_creacion: datetime
-    class Config:
-        orm_mode = True
-
-# --- Categorias ---
-class CategoriaTotal(BaseModel):
-    categoria: str
-    total: float
-
-
-class TendenciaMensual(BaseModel):
-    mes: str
-    total: float
-    
-class ResumenFinanciero(BaseModel):
-    total_ingresos: float
-    total_egresos: float
-    total_ahorros: float
-    balance: float
-
-# --- Notificaciones ---
-class NotificacionBase(BaseModel):
-    usuario_id: int
-    tipo: Literal['correo','sms']
-    asunto: str
-    mensaje: str
-    fecha_programada: Optional[datetime] = None
-
-class NotificacionCreate(NotificacionBase):
-    pass
-
-class NotificacionRead(NotificacionBase):
-    id: int
-    fue_enviada: bool
-    fecha_creacion: datetime
-    fecha_envio: Optional[datetime]
-    class Config:
-        orm_mode = True
-       
+import models, schemas
+from schemas import *
+from database import *
 
 # Inicialización de la app
 app = FastAPI(title="LanaApp API", version="1.0.0")
-
-
-# --- Endpoints Usuarios ---
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 app.add_middleware(
@@ -252,18 +22,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Función simulada de envío de correo electrónico
-def send_recovery_email(email: str, token: str):
-    print(f"[EMAIL] Para {email}: usa este token → {token}")
-
-
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+# Función simulada de envío de correo electrónico
+def send_recovery_email(email: str, token: str):
+    print(f"[EMAIL] Para {email}: usa este token → {token}")
+
 
 MESES_ES = {
     1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
@@ -420,40 +189,9 @@ def eliminar_transaccion(id: int, usuario_id: int = 1, db: Session = Depends(get
     db.delete(transaccion)
     db.commit()
     return {"mensaje": "Transacción eliminada correctamente"}
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 
-import models
-import schemas
-from database import SessionLocal, engine, Base
 
-app = FastAPI()
-
-# 🔐 Middleware CORS (acepta desde cualquier origen)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Puedes reemplazar con ["http://localhost:19006"] para Expo
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# 🔧 Crear tablas si no existen
-Base.metadata.create_all(bind=engine)
-
-# 🔐 Encriptar contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# 🔌 Conexión a BD
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
+# --- Endpoints Usuarios ---
 # 📝 REGISTRO
 @app.post("/register")
 def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
