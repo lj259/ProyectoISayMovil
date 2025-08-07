@@ -7,6 +7,12 @@ import Transacciones from './screens/Transacciones';
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import InicioScreen from './src/screens/InicioScreen';
+import RegistroScreen from './src/screens/RegistroScreen';
+import LoginScreen from './src/screens/LoginScreen';
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
