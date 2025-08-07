@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://192.168.100.44:8000"; 
+const API_URL = "http://10.16.32.134:8000"; 
 
 export default function Dashboard() {
   const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, total_ahorros: 0, balance: 0 });
