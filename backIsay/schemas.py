@@ -12,12 +12,12 @@ class UsuarioBase(BaseModel):
 class UsuarioCreate(BaseModel):
     nombre_usuario: str
     correo: str
-    contraseña: str     
+    contraseña_hash: str     
     telefono: Optional[str] = None
 
 class UsuarioLogin(BaseModel):
     correo: str
-    contraseña: str
+    contraseña_hash: str
 
 class UsuarioRead(BaseModel):
     id: int

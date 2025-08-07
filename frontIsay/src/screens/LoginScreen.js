@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import axios from 'axios';
-
+import { useNavigation } from '@react-navigation/native';
 const API_URL = 'http://10.16.35.228:8000'; 
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen() {
+
   const [correo, setCorreo] = useState('');
-  const [password, setContraseña] = useState('');
+  const [contraseña_hash, setContraseña] = useState('');
+  const navigation = useNavigation();
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post(`${API_URL}/login`, { correo, password });
+      console.log(`Iniciando sesión con correo: ${correo}`,' y contraseña: ', contraseña_hash);
+      const res = await axios.post(`${API_URL}/login`, { correo, contraseña_hash });
       Alert.alert('Bienvenido', `${res.data.nombre_usuario}`);
+      navigation.navigate('Dashboard'); 
     } catch (err) {
       Alert.alert('Error', err.response?.data?.detail || 'Error al iniciar sesión');
     }

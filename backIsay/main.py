@@ -8,6 +8,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 import models, schemas
+from models import *
 from schemas import *
 from database import *
 
@@ -195,16 +196,17 @@ def eliminar_transaccion(id: int, usuario_id: int = 1, db: Session = Depends(get
 # 📝 REGISTRO
 @app.post("/register")
 def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    print(f"Registrando usuario: {user}")
     user_in_db = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
     if user_in_db:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
 
-    hashed_password = pwd_context.hash(user.password)
+    hashed_password = pwd_context.hash(user.contraseña_hash)
 
     nuevo_usuario = models.Usuario(
         nombre_usuario=user.nombre_usuario,
         correo=user.correo,
-        contraseña=hashed_password,
+        contraseña_hash=hashed_password,
         telefono=user.telefono
     )
 
@@ -217,9 +219,10 @@ def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
 # 🔐 LOGIN
 @app.post("/login")
 def login(user: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    print(f"Intento de login: {user}")
     usuario = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
-
-    if not usuario or not pwd_context.verify(user.password, usuario.contraseña):
+    print(f"Usuario encontrado: {usuario}")
+    if not usuario or not pwd_context.verify(user.contraseña_hash, usuario.contraseña_hash):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
     return {

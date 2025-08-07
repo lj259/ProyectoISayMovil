@@ -5,12 +5,12 @@ from database import Base
 
 # --- Modelos SQLAlchemy ---
 
-class UsuarioDB(Base):
+class Usuario(Base):
     __tablename__ = "usuarios"
     id                  = Column(Integer, primary_key=True, index=True)
     nombre_usuario      = Column(String(50), unique=True, nullable=False)
     correo              = Column(String(100), unique=True, nullable=False)
-    contraseña          = Column(String(255), nullable=False)  # texto claro
+    contraseña_hash     = Column(String(255), nullable=False)  # texto claro
     telefono            = Column(String(20), nullable=True)
     esta_activo         = Column(Boolean, default=True)
     fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
