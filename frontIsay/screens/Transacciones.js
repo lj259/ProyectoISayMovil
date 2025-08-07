@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-const API_URL = "http://192.168.100.44:8000";
+const API_URL = "http://192.168.1.138:8000";
 
 // Función para formatear fecha local y evitar que se sume un día
 const ajustarFecha = (date) => {
@@ -116,9 +116,10 @@ export default function Transacciones() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           monto: parseFloat(monto),
-          categoria,
+          tipo: categoria,
           descripcion,
-          fecha
+          fecha,
+          categoria_id: 1 // Asumiendo que no se usa categoría_id en la edición
         })
       });
 

@@ -1,86 +1,33 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  
-from typing import List
-from pydantic import BaseModel
-from collections import defaultdict
-from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Boolean, ForeignKey
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
-
-
-SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:@127.0.0.1/lanaapp"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Modelos de la base de datos
-
-class Categoria(Base):
-    __tablename__ = "categorias"
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(50))
-    tipo = Column(String(50))  # ingreso, egreso, ahorro
-    usuario_id = Column(Integer)
-    es_predeterminada = Column(Boolean)
-
-class Transaccion(Base):
-    __tablename__ = "transacciones"
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer)
-    monto = Column(Float)
-    categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
-    tipo = Column(String(50))  # ahora usamos esto para guardar Ingreso/Gasto
-    descripcion = Column(String(255))
-    fecha = Column(Date)
-    es_recurrente = Column(Boolean)
-    id_recurrente = Column(Integer)
-    fecha_creacion = Column(Date)
-
-    categoria = relationship("Categoria", backref="transacciones")
-
-app = FastAPI()
 # ——— Imports de terceros —————————————————————————————————————
-import uuid
-from datetime import date, datetime, timedelta
-from collections import defaultdict
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware  
 from typing import List, Optional, Literal
-
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
-
+from collections import defaultdict
+from datetime import datetime, timedelta, date
 # SQLAlchemy core + func.now()
-from sqlalchemy import (
-    create_engine,
-    Column, Integer, Float, DECIMAL, TIMESTAMP,
-    ForeignKey, String, Date, Enum, Boolean,
-    func,
-)
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, Boolean, ForeignKey, DECIMAL, TIMESTAMP, Enum, func
+
 # SQLAlchemy ORM
-from sqlalchemy.orm import (
-    declarative_base,
-    sessionmaker,
-    Session,
-)
+from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
+
+import uuid
 
 from passlib.context import CryptContext
 
 # ——— Configuración de BD —————————————————————————————————————
-DATABASE_URL = "mysql+pymysql://root:@localhost/lanaapp"
-engine       = create_engine(DATABASE_URL)
+SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root@localhost/lanaapp"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine       = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base         = declarative_base()
 pwd_context  = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# Función simulada de envío de correo electrónico
-def send_recovery_email(email: str, token: str):
-    print(f"[EMAIL] Para {email}: usa este token → {token}")
-
-
 
 # --- Modelos SQLAlchemy ---
+
 class UsuarioDB(Base):
     __tablename__ = "usuarios"
     id                  = Column(Integer, primary_key=True, index=True)
@@ -97,7 +44,7 @@ class CategoriaDB(Base):
     __tablename__ = "categorias"
     id                = Column(Integer, primary_key=True, index=True)
     nombre            = Column(String(50), nullable=False)
-    tipo              = Column(Enum('ingreso', 'gasto'), nullable=False)
+    tipo              = Column(Enum('ingreso', 'egreso'), nullable=False)
     usuario_id        = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     es_predeterminada = Column(Boolean, default=False)
 
@@ -118,7 +65,7 @@ class TransaccionDB(Base):
     usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     monto          = Column(Float, nullable=False)
     categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
-    tipo           = Column(Enum('ingreso','gasto'), nullable=False)
+    tipo           = Column(Enum('ingreso','egreso', 'ahorro'), nullable=False)
     descripcion    = Column(String(255), nullable=True)
     fecha          = Column(Date, nullable=False)
     es_recurrente  = Column(Boolean, default=False)
@@ -156,9 +103,9 @@ class NotificacionDB(Base):
 # Vuelve a crear tablas
 Base.metadata.create_all(bind=engine)
 
-
 # --- Schemas Pydantic ---
 
+# --- Usuarios ---
 class UsuarioBase(BaseModel):
     nombre_usuario: str
     correo: str
@@ -185,14 +132,13 @@ class UsuarioRead(BaseModel):
     class Config:
         orm_mode = True
 
-
-
 class PasswordRecoveryRequest(BaseModel):
     correo: str
 
 class PasswordResetRequest(BaseModel):
     nueva_contraseña: str = Field(..., min_length=6)
 
+# --- Presupuestos ---
 class PresupuestoBase(BaseModel):
     usuario_id: int
     categoria_id: int
@@ -209,6 +155,7 @@ class PresupuestoRead(PresupuestoBase):
     class Config:
         orm_mode = True
 
+# --- Transacciones ---
 class TransaccionBase(BaseModel):
     usuario_id: int
     monto: float
@@ -226,7 +173,19 @@ class TransaccionRead(TransaccionBase):
     fecha_creacion: datetime
     class Config:
         orm_mode = True
+        
+class TransaccionOut(BaseModel):
+    id: int
+    monto: float
+    tipo: str
+    descripcion: str
+    fecha: str
+    categoria: str
 
+    class Config:
+        orm_mode = True
+        
+# --- Pagos Fijos ---
 class PagoFijoBase(BaseModel):
     usuario_id: int
     descripcion: str
@@ -241,20 +200,23 @@ class PagoFijoRead(PagoFijoBase):
     class Config:
         orm_mode = True
 
+# --- Categorias ---
 class CategoriaTotal(BaseModel):
     categoria: str
     total: float
 
+
 class TendenciaMensual(BaseModel):
     mes: str
     total: float
-
+    
 class ResumenFinanciero(BaseModel):
     total_ingresos: float
     total_egresos: float
+    total_ahorros: float
     balance: float
 
-
+# --- Notificaciones ---
 class NotificacionBase(BaseModel):
     usuario_id: int
     tipo: Literal['correo','sms']
@@ -272,17 +234,7 @@ class NotificacionRead(NotificacionBase):
     fecha_envio: Optional[datetime]
     class Config:
         orm_mode = True
-
-    
-# Dependencia de DB
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-        
+       
 
 # Inicialización de la app
 app = FastAPI(title="LanaApp API", version="1.0.0")
@@ -301,6 +253,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Función simulada de envío de correo electrónico
+def send_recovery_email(email: str, token: str):
+    print(f"[EMAIL] Para {email}: usa este token → {token}")
+
 
 def get_db():
     db = SessionLocal()
@@ -316,9 +272,7 @@ MESES_ES = {
 
 #  Endpoint 1: Gráfico circular
 
-class CategoriaTotal(BaseModel):
-    categoria: str
-    total: float
+
 
 @app.get("/graficas/categorias", response_model=List[CategoriaTotal])
 def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
@@ -327,9 +281,9 @@ def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends
     """
     totales = defaultdict(float)
 
-    transacciones = db.query(Transaccion).join(Categoria, isouter=True).filter(
-        Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == tipo
+    transacciones = db.query(TransaccionDB).join(CategoriaDB, isouter=True).filter(
+        TransaccionDB.usuario_id == usuario_id,
+        TransaccionDB.tipo == tipo
     ).all()
 
     for t in transacciones:
@@ -343,9 +297,7 @@ def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends
 
 # Endpoint 2: Gráfico de barras
 
-class TendenciaMensual(BaseModel):
-    mes: str
-    total: float
+
 
 @app.get("/graficas/tendencias", response_model=List[TendenciaMensual])
 def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
@@ -354,9 +306,9 @@ def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(g
     """
     totales_por_mes = defaultdict(float)
 
-    transacciones = db.query(Transaccion).filter(
-        Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == tipo
+    transacciones = db.query(TransaccionDB).filter(
+        TransaccionDB.usuario_id == usuario_id,
+        TransaccionDB.tipo == tipo
     ).all()
 
     for t in transacciones:
@@ -371,28 +323,24 @@ def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(g
 
 # Endpoint 3: Resumen financiero
 
-class ResumenFinanciero(BaseModel):
-    total_ingresos: float
-    total_egresos: float
-    total_ahorros: float
-    balance: float
+
 
 @app.get("/resumen", response_model=ResumenFinanciero)
 def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
-    
-    ingresos = db.query(Transaccion).filter(
-        Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == "ingreso"
-    ).all()
-    
-    egresos = db.query(Transaccion).filter(
-        Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == "egreso"
+
+    ingresos = db.query(TransaccionDB).filter(
+        TransaccionDB.usuario_id == usuario_id,
+        TransaccionDB.tipo == "ingreso"
     ).all()
 
-    ahorros = db.query(Transaccion).filter(
-        Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == "ahorro"
+    egresos = db.query(TransaccionDB).filter(
+        TransaccionDB.usuario_id == usuario_id,
+        TransaccionDB.tipo == "egreso"
+    ).all()
+
+    ahorros = db.query(TransaccionDB).filter(
+        TransaccionDB.usuario_id == usuario_id,
+        TransaccionDB.tipo == "ahorro"
     ).all()
     
     total_ingresos = sum(t.monto for t in ingresos)
@@ -409,22 +357,13 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
 
 # Endpoint 4: Transacciones (Listar)
 
-class TransaccionOut(BaseModel):
-    id: int
-    monto: float
-    tipo: str
-    descripcion: str
-    fecha: str
-    categoria: str
 
-    class Config:
-        orm_mode = True
 
 
 @app.get("/transacciones", response_model=List[TransaccionOut])
 def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):
-    transacciones = db.query(Transaccion).filter(
-        Transaccion.usuario_id == usuario_id
+    transacciones = db.query(TransaccionDB).filter(
+        TransaccionDB.usuario_id == usuario_id
     ).all()
 
     return [
@@ -439,21 +378,18 @@ def listar_transacciones(usuario_id: int = 1, db: Session = Depends(get_db)):
         for t in transacciones
     ]
 
-class TransaccionCreate(BaseModel):
-    monto: float
-    categoria: str  # ingreso o egreso
-    descripcion: str
-    fecha: str  # YYYY-MM-DD
+
 
 @app.post("/transacciones")
 def crear_transaccion(data: TransaccionCreate, usuario_id: int = 1, db: Session = Depends(get_db)):
-    nueva_transaccion = Transaccion(
+    print(f"Creando transacción: {data}")
+    nueva_transaccion = TransaccionDB(
         usuario_id=usuario_id,
         monto=data.monto,
-        tipo=data.categoria.lower(),
+        tipo=data.tipo.lower(),
         descripcion=data.descripcion,
-        fecha=datetime.strptime(data.fecha, "%Y-%m-%d").date(),
-        categoria_id=None,
+        fecha=data.fecha,
+        categoria_id=data.categoria_id,
         fecha_creacion=datetime.now().date(),
         es_recurrente=False,
         id_recurrente=None
@@ -465,7 +401,7 @@ def crear_transaccion(data: TransaccionCreate, usuario_id: int = 1, db: Session 
 
 @app.put("/transacciones/{id}")
 def editar_transaccion(id: int, data: TransaccionCreate, usuario_id: int = 1, db: Session = Depends(get_db)):
-    transaccion = db.query(Transaccion).filter(Transaccion.id == id, Transaccion.usuario_id == usuario_id).first()
+    transaccion = db.query(TransaccionDB).filter(TransaccionDB.id == id, TransaccionDB.usuario_id == usuario_id).first()
     if not transaccion:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     transaccion.monto = data.monto
@@ -473,12 +409,12 @@ def editar_transaccion(id: int, data: TransaccionCreate, usuario_id: int = 1, db
     transaccion.descripcion = data.descripcion
     transaccion.fecha = datetime.strptime(data.fecha, "%Y-%m-%d").date()
     db.commit()
-    db.refresh(transaccion)
+    db.refresh(transaccion) 
     return {"mensaje": "Transacción actualizada correctamente"}
 
 @app.delete("/transacciones/{id}")
 def eliminar_transaccion(id: int, usuario_id: int = 1, db: Session = Depends(get_db)):
-    transaccion = db.query(Transaccion).filter(Transaccion.id == id, Transaccion.usuario_id == usuario_id).first()
+    transaccion = db.query(TransaccionDB).filter(TransaccionDB.id == id, TransaccionDB.usuario_id == usuario_id).first()
     if not transaccion:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     db.delete(transaccion)
