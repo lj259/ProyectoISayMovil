@@ -5,7 +5,7 @@ from database import Base
 
 # --- Modelos SQLAlchemy ---
 
-class Usuario(Base):
+class UsuarioDB(Base):
     __tablename__ = "usuarios"
     id                  = Column(Integer, primary_key=True, index=True)
     nombre_usuario      = Column(String(50), unique=True, nullable=False)
