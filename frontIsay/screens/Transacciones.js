@@ -6,7 +6,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://10.16.37.126:8000";
+const API_URL = "http://10.16.34.94:8000";
 
 const ajustarFecha = (date) => {
   const y = date.getFullYear();
@@ -18,13 +18,12 @@ const ajustarFecha = (date) => {
 export default function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [categorias, setCategorias] = useState([]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
-  const [tipo, setTipo] = useState(""); 
-  const [categoria, setCategoria] = useState(""); 
+  const [tipo, setTipo] = useState("");
+  const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -78,7 +77,7 @@ export default function Transacciones() {
         body: JSON.stringify({
           monto: parseFloat(monto),
           tipo,
-          categoria, // nombre
+          categoria,
           descripcion,
           fecha,
         }),
@@ -219,25 +218,27 @@ export default function Transacciones() {
             <Picker
               selectedValue={tipo}
               onValueChange={(v) => { setTipo(v); setCategoria(""); }}
-              style={{ marginBottom: 10, color: "#000" }}
+              style={{ marginBottom: 10 }}
+              itemStyle={{ color: "#000" }}
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona el tipo" value="" color="#888" />
-              <Picker.Item label="Ingreso" value="ingreso" />
-              <Picker.Item label="Egreso" value="egreso" />
-              <Picker.Item label="Ahorro" value="ahorro" />
+              <Picker.Item label="Ingreso" value="ingreso" color="#000" />
+              <Picker.Item label="Egreso" value="egreso" color="#000" />
+              <Picker.Item label="Ahorro" value="ahorro" color="#000" />
             </Picker>
 
             <Text style={styles.label}>Categoría</Text>
             <Picker
               selectedValue={categoria}
               onValueChange={setCategoria}
-              style={{ marginBottom: 10, color: "#000" }}
+              style={{ marginBottom: 10 }}
+              itemStyle={{ color: "#000" }}
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona la categoría" value="" color="#888" />
               {categoriasFiltradas.map((c) => (
-                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} />
+                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
               ))}
             </Picker>
 
@@ -273,25 +274,27 @@ export default function Transacciones() {
             <Picker
               selectedValue={tipo}
               onValueChange={(v) => { setTipo(v); setCategoria(""); }}
-              style={{ marginBottom: 10, color: "#000" }}
+              style={{ marginBottom: 10 }}
+              itemStyle={{ color: "#000" }}
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona el tipo" value="" color="#888" />
-              <Picker.Item label="Ingreso" value="ingreso" />
-              <Picker.Item label="Egreso" value="egreso" />
-              <Picker.Item label="Ahorro" value="ahorro" />
+              <Picker.Item label="Ingreso" value="ingreso" color="#000" />
+              <Picker.Item label="Egreso" value="egreso" color="#000" />
+              <Picker.Item label="Ahorro" value="ahorro" color="#000" />
             </Picker>
 
             <Text style={styles.label}>Categoría</Text>
             <Picker
               selectedValue={categoria}
               onValueChange={setCategoria}
-              style={{ marginBottom: 10, color: "#000" }}
+              style={{ marginBottom: 10 }}
+              itemStyle={{ color: "#000" }}
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona la categoría" value="" color="#888" />
               {(tipo ? categorias.filter((c) => c.tipo === tipo) : categorias).map((c) => (
-                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} />
+                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
               ))}
             </Picker>
 
