@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = "http://192.168.1.65:8000";  // This is correct, keep it as is
+const API_URL = "http://192.168.1.140:8000";  // This is correct, keep it as is
 
 export default function Configuracion({ navigation }) {
   const [usuario, setUsuario] = useState({

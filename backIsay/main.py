@@ -197,7 +197,7 @@ def register(user: schemas.UsuarioCreate, db: Session = Depends(get_db)):
 
     hashed_password = pwd_context.hash(user.contraseña_hash)
 
-    nuevo_usuario = models.Usuario(
+    nuevo_usuario = models.UsuarioDB(
         nombre_usuario=user.nombre_usuario,
         correo=user.correo,
         contraseña_hash=hashed_password,

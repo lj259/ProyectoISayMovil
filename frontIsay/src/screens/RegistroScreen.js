@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
-import axios from 'axios';
-
-const API_URL = 'http://10.16.35.228:8000'; // Cambia a tu IP si usas celular
+import { register } from '../utils/api';
 
 export default function RegistroScreen({ navigation }) {
   const [form, setForm] = useState({
@@ -19,8 +17,8 @@ export default function RegistroScreen({ navigation }) {
       return;
     }
     try {
-      const res = await axios.post(`${API_URL}/register`, form);
-      Alert.alert('Éxito', res.data.mensaje);
+      const res = await register(form);
+      Alert.alert('Éxito', res.mensaje);
       navigation.navigate('Login');
     } catch (err) {
       Alert.alert('Error', err.response?.data?.detail || 'Algo salió mal');

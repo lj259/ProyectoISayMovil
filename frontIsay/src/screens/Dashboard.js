@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { Picker } from "@react-native-picker/picker";
-
-const API_URL = "http://10.16.35.228:8000"; 
+import { getResumen, getTendencias, getCategorias } from "../utils/api";
 
 export default function Dashboard() {
   const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, total_ahorros: 0, balance: 0 });
@@ -12,31 +11,22 @@ export default function Dashboard() {
   const [tipo, setTipo] = useState("egreso"); // Gastos
 
   useEffect(() => {
-    fetchResumen();
+    const cargarResumen = async () => {
+      const data = await getResumen();
+      setResumen(data);
+    };
+    cargarResumen();
   }, []);
 
   useEffect(() => {
-    fetchTendencias();
-    fetchCategorias();
+    const cargarGraficas = async () => {
+      const t = await getTendencias(tipo);
+      const c = await getCategorias(tipo);
+      setTendencias(t);
+      setCategorias(c);
+    };
+    cargarGraficas();
   }, [tipo]);
-
-  const fetchResumen = async () => {
-    const res = await fetch(`${API_URL}/resumen`);
-    const data = await res.json();
-    setResumen(data);
-  };
-
-  const fetchTendencias = async () => {
-    const res = await fetch(`${API_URL}/graficas/tendencias?tipo=${tipo}`);
-    const data = await res.json();
-    setTendencias(data);
-  };
-
-  const fetchCategorias = async () => {
-    const res = await fetch(`${API_URL}/graficas/categorias?tipo=${tipo}`);
-    const data = await res.json();
-    setCategorias(data);
-  };
 
   // Datos para la gráfica de barras
   const barData = {

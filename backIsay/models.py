@@ -1,5 +1,6 @@
 # SQLAlchemy core + func.now()
 from sqlalchemy import Column, Integer, String, Float, Date, Boolean, ForeignKey, DECIMAL, TIMESTAMP, Enum, func
+from sqlalchemy.orm import relationship
 from database import Base
 
 
@@ -24,6 +25,7 @@ class CategoriaDB(Base):
     tipo              = Column(Enum('ingreso', 'egreso'), nullable=False)
     usuario_id        = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     es_predeterminada = Column(Boolean, default=False)
+    transacciones     = relationship("TransaccionDB", back_populates="categoria")
 
 class PresupuestoDB(Base):
     __tablename__ = "presupuestos"
@@ -42,6 +44,7 @@ class TransaccionDB(Base):
     usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     monto          = Column(Float, nullable=False)
     categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
+    categoria      = relationship("CategoriaDB", back_populates="transacciones")
     tipo           = Column(Enum('ingreso','egreso', 'ahorro'), nullable=False)
     descripcion    = Column(String(255), nullable=True)
     fecha          = Column(Date, nullable=False)

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const API_URL = "http://192.168.1.65:8000";
+const API_URL = "http://192.168.1.140:8000";
 
 export default function Perfil({ navigation }) {
   const [usuario, setUsuario] = useState({

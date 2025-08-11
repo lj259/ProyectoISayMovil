@@ -12,8 +12,7 @@ import {
   ScrollView
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
-const API_URL = "http://10.16.35.228:8000";
+import { getTransacciones, crearTransaccion as crearTransaccionAPI, editarTransaccion as editarTransaccionAPI, eliminarTransaccion as  eliminarTransaccionAPI} from "../utils/api";
 
 // Función para formatear fecha local y evitar que se sume un día
 const ajustarFecha = (date) => {
@@ -30,7 +29,7 @@ export default function Transacciones() {
   // Estados para modal Crear
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
-  const [categoria, setCategoria] = useState(""); // ingreso, egreso o ahorro
+  const [tipo, setTipo] = useState(""); // ingreso, egreso o ahorro
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -54,8 +53,7 @@ export default function Transacciones() {
   const fetchTransacciones = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/transacciones`);
-      const data = await res.json();
+      const data = await getTransacciones();
       setTransacciones(data);
     } catch (error) {
       console.log("Error cargando transacciones", error);
@@ -67,25 +65,19 @@ export default function Transacciones() {
 
   // Crear transacción
   const crearTransaccion = async () => {
-    if (!monto || !categoria || !descripcion || !fecha) {
+    if (!monto || !tipo || !descripcion || !fecha) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
 
     try {
-      const res = await fetch(`${API_URL}/transacciones`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          monto: parseFloat(monto),
-          categoria,
-          descripcion,
-          fecha
-        })
+      const res = await crearTransaccionAPI({
+        monto: parseFloat(monto),
+        tipo,
+        descripcion,
+        fecha
       });
-
-      if (!res.ok) throw new Error("Error al crear transacción");
-
+      setTransacciones([...transacciones, res]);
       setModalVisible(false);
       limpiarCampos();
       fetchTransacciones();
@@ -98,40 +90,36 @@ export default function Transacciones() {
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setCategoria(item.tipo.toLowerCase());
+    setTipo(item.tipo.toLowerCase());
     setDescripcion(item.descripcion);
     setFecha(item.fecha);
     setEditDate(new Date(item.fecha));
     setModalEditarVisible(true);
   };
 
-  const editarTransaccion = async () => {
-    if (!monto || !categoria || !descripcion || !fecha) {
-      Alert.alert("Error", "Todos los campos son obligatorios");
-      return;
-    }
-    try {
-      const res = await fetch(`${API_URL}/transacciones/${editId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          monto: parseFloat(monto),
-          tipo: categoria,
-          descripcion,
-          fecha,
-          categoria_id: 1 // Asumiendo que no se usa categoría_id en la edición
-        })
-      });
+const editarTransaccion = async () => {
+  if (!monto || !tipo || !descripcion || !fecha) {
+    Alert.alert("Error", "Todos los campos son obligatorios");
+    return;
+  }
 
-      if (!res.ok) throw new Error("Error al editar transacción");
+  try {
+    await editarTransaccionAPI(editId, {
+      monto: parseFloat(monto),
+      tipo,
+      descripcion,
+      fecha
+    });
 
-      setModalEditarVisible(false);
-      limpiarCampos();
-      fetchTransacciones();
-    } catch (error) {
-      console.log("Error editando transacción", error);
-    }
-  };
+    setModalEditarVisible(false);
+    limpiarCampos();
+    fetchTransacciones();
+  } catch (error) {
+    console.log("Error editando transacción", error);
+    Alert.alert("Error", "No se pudo editar la transacción");
+  }
+};
+
 
   // Eliminar transacción
   const abrirModalEliminar = (id) => {
@@ -139,25 +127,22 @@ export default function Transacciones() {
     setModalEliminarVisible(true);
   };
 
-  const eliminarTransaccion = async () => {
-    try {
-      const res = await fetch(`${API_URL}/transacciones/${deleteId}`, {
-        method: "DELETE",
-      });
+const eliminarTransaccion = async () => {
+  try {
+    await eliminarTransaccionAPI(deleteId);
+    setModalEliminarVisible(false);
+    fetchTransacciones();
+  } catch (error) {
+    console.log("Error eliminando transacción", error);
+    Alert.alert("Error", "No se pudo eliminar la transacción");
+  }
+};
 
-      if (!res.ok) throw new Error("Error al eliminar transacción");
-
-      setModalEliminarVisible(false);
-      fetchTransacciones();
-    } catch (error) {
-      console.log("Error eliminando transacción", error);
-    }
-  };
 
   // Limpiar campos
   const limpiarCampos = () => {
     setMonto("");
-    setCategoria("");
+    setTipo("");
     setDescripcion("");
     setFecha("");
     setDate(new Date());
@@ -256,13 +241,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "ingreso" && styles.typeButtonSelectedIngreso
+                  tipo === "ingreso" && styles.typeButtonSelectedIngreso
                 ]}
-                onPress={() => setCategoria("ingreso")}
+                onPress={() => setTipo("ingreso")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "ingreso" && styles.typeButtonTextSelected
+                  tipo === "ingreso" && styles.typeButtonTextSelected
                 ]}>
                   Ingreso
                 </Text>
@@ -270,13 +255,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "egreso" && styles.typeButtonSelectedEgreso
+                  tipo === "egreso" && styles.typeButtonSelectedEgreso
                 ]}
-                onPress={() => setCategoria("egreso")}
+                onPress={() => setTipo("egreso")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "egreso" && styles.typeButtonTextSelected
+                  tipo === "egreso" && styles.typeButtonTextSelected
                 ]}>
                   Egreso
                 </Text>
@@ -284,13 +269,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                  tipo === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
                 ]}
-                onPress={() => setCategoria("ahorro")}
+                onPress={() => setTipo("ahorro")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "ahorro" && { color: "#fff" }
+                  tipo === "ahorro" && { color: "#fff" }
                 ]}>
                   Ahorro
                 </Text>
@@ -351,13 +336,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "ingreso" && styles.typeButtonSelectedIngreso
+                  tipo === "ingreso" && styles.typeButtonSelectedIngreso
                 ]}
-                onPress={() => setCategoria("ingreso")}
+                onPress={() => setTipo("ingreso")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "ingreso" && styles.typeButtonTextSelected
+                  tipo === "ingreso" && styles.typeButtonTextSelected
                 ]}>
                   Ingreso
                 </Text>
@@ -365,13 +350,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "egreso" && styles.typeButtonSelectedEgreso
+                  tipo === "egreso" && styles.typeButtonSelectedEgreso
                 ]}
-                onPress={() => setCategoria("egreso")}
+                onPress={() => setTipo("egreso")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "egreso" && styles.typeButtonTextSelected
+                  tipo === "egreso" && styles.typeButtonTextSelected
                 ]}>
                   Egreso
                 </Text>
@@ -379,13 +364,13 @@ export default function Transacciones() {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  categoria === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                  tipo === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
                 ]}
-                onPress={() => setCategoria("ahorro")}
+                onPress={() => setTipo("ahorro")}
               >
                 <Text style={[
                   styles.typeButtonText,
-                  categoria === "ahorro" && { color: "#fff" }
+                  tipo === "ahorro" && { color: "#fff" }
                 ]}>
                   Ahorro
                 </Text>

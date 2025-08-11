@@ -36,9 +36,9 @@ function TabNavigator() {
     >
       <Tab.Screen name="Dashboard" component={Dashboard} />
       <Tab.Screen name="Transacciones" component={Transacciones} />
-      <Tab.Screen name="Perfil" component={PerfilScreen} /> {/* Placeholder for Perfil screen */}
-      <Tab.Screen name="Ajustes" component={EditarPerfilScreen} /> {/* Placeholder for Ajustes screen */}
-      <Tab.Screen name="Configuracion" component={ConfiguracionScreen} /> {/* Placeholder for Configuracion screen */}
+      <Tab.Screen name="Perfil" component={PerfilScreen} /> 
+      <Tab.Screen name="Ajustes" component={EditarPerfilScreen} />
+      <Tab.Screen name="Configuracion" component={ConfiguracionScreen} />
     </Tab.Navigator>
   );
 }
@@ -51,7 +51,7 @@ export default function App() {
         <Stack.Screen name="Inicio" component={InicioScreen} />
         <Stack.Screen name="Registro" component={RegistroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Dashboard" component={TabNavigator} />
+        <Stack.Screen name="Home" component={TabNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );
