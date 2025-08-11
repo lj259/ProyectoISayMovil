@@ -1,8 +1,56 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Modal,
+  TextInput,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from "@react-native-picker/picker";
+import { fetchCategorias  } from "../utils/api";
 
 export default function PresupuestoScreen() {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [idUsuario, setIdUsuario] = useState("");
+  const [idCategoria, setIdCategoria] = useState("");
+  const [monto, setMonto] = useState("");
+  const [categorias, setCategorias] = useState([]);
+
+  
+  
+ useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userId = await AsyncStorage.getItem("usuario_id");
+        if (userId) {
+          setIdUsuario(userId);
+
+          const data = await fetchCategorias();
+          setCategorias(data);
+        }
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleGuardar = () => {
+    console.log({
+      idUsuario,
+      idCategoria,
+      monto,
+    });
+    setModalVisible(false);
+    setIdUsuario("");
+    setIdCategoria("");
+    setMonto("");
+  };
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -20,7 +68,10 @@ export default function PresupuestoScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Resumen del mes</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setModalVisible(true)}
+          >
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addButtonText}>Nuevo Presupuesto</Text>
           </TouchableOpacity>
@@ -106,7 +157,52 @@ export default function PresupuestoScreen() {
           <Text style={styles.categoryDetail}>Gastado: $280   Límite: $350</Text>
           <Text>80% utilizado</Text>
         </View>
+        
       </View>
+      {/* Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Nuevo Presupuesto</Text>
+
+            <Text style={{ marginBottom: 5 }}>ID Usuario: {idUsuario}</Text>
+
+            <Picker
+              selectedValue={idCategoria}
+              style={styles.input}
+              onValueChange={(itemValue) => setIdCategoria(itemValue)}
+            >
+              <Picker.Item label="Selecciona una categoría" value="" />
+              {categorias.map((cat) => (
+                <Picker.Item key={cat.id} label={cat.nombre} value={cat.id} />
+              ))}
+            </Picker>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Monto"
+              value={monto}
+              keyboardType="numeric"
+              onChangeText={setMonto}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: "#ccc" }]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: "#6ab04c" }]}
+                onPress={handleGuardar}
+              >
+                <Text style={{ color: "#fff" }}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -140,4 +236,11 @@ const styles = StyleSheet.create({
   categoryTitle: { fontWeight: "bold", fontSize: 14, marginTop: 5 },
   categoryDetail: { fontSize: 12, marginTop: 3 },
   categoryProgress: { fontSize: 12, color: "#555" },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
+  modalContainer: { backgroundColor: "#fff", padding: 20, borderRadius: 10, width: "80%" },
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 15 },
+  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 5, padding: 10, marginBottom: 10 },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
+  modalButton: { padding: 10, borderRadius: 5, minWidth: 100, alignItems: "center" },
+
 });

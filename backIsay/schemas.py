@@ -36,13 +36,33 @@ class PasswordRecoveryRequest(BaseModel):
 class PasswordResetRequest(BaseModel):
     nueva_contraseña: str = Field(..., min_length=6)
 
+# --- Categorias ---
+class CategoriaTotal(BaseModel):
+    categoria: str
+    total: float
+
+class Categoria(BaseModel):
+    id: int
+    nombre: str
+    tipo: str
+    usuario_id: int
+    es_predeterminada: bool
+
+    class Config:
+        orm_mode = True
+
+class CategoriaOut(BaseModel):
+    id: int
+    nombre: str
+
+    class Config:
+        orm_mode = True
+
 # --- Presupuestos ---
 class PresupuestoBase(BaseModel):
     usuario_id: int
     categoria_id: int
     monto: float
-    ano: int
-    mes: int
 
 class PresupuestoCreate(PresupuestoBase): pass
 
@@ -88,6 +108,7 @@ class PagoFijoBase(BaseModel):
     descripcion: str
     usuario_id: int
     categoria_id: int
+    frecuencia: str
     monto: float
     fecha: date
 
@@ -99,20 +120,27 @@ class PagoFijoRead(PagoFijoBase):
     class Config:
         orm_mode = True
 
-class PagoFijoOut(BaseModel): pass
-
-# --- Categorias ---
-class CategoriaTotal(BaseModel):
-    categoria: str
-    total: float
-
-class Categoria(BaseModel):
+class PagoFijoOut(BaseModel):
     id: int
-    nombre: str
-    tipo: str
     usuario_id: int
-    es_predeterminada: bool
+    categoria_id: int
+    categoria: CategoriaOut | None = None
+    monto: float
+    fecha: date
+    fecha_creacion: datetime
+    estado: str
+    frecuencia: str | None = None
+    nombre: str | None = None
+    
+    class Config:
+        orm_mode = True
 
+
+class BalanceAlertaOut(BaseModel):
+    ahorro: float
+    total_pagos_fijos: float
+    alerta: bool
+    faltante: float
     class Config:
         orm_mode = True
 

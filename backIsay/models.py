@@ -26,6 +26,7 @@ class Categoria(Base):
     usuario_id        = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     es_predeterminada = Column(Boolean, default=False)
     transacciones     = relationship("Transaccion", back_populates="categoria")
+    pagos_fijos       = relationship("PagoFijo", back_populates="categoria")
 
 class Presupuesto(Base):
     __tablename__ = "presupuestos"
@@ -33,8 +34,6 @@ class Presupuesto(Base):
     usuario_id          = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     categoria_id        = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     monto               = Column(DECIMAL(10, 2), nullable=False)
-    ano                 = Column(Integer, nullable=False)
-    mes                 = Column(Integer, nullable=False)
     fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -58,9 +57,11 @@ class PagoFijo(Base):
     descripcion    = Column(String(255), nullable=False)
     usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
+    frecuencia     = Column(Enum('diario', 'semanal', 'mensual', 'anual'), nullable=False)
     monto          = Column(Float, nullable=False)
     fecha          = Column(Date, nullable=False)
     fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    categoria      = relationship("Categoria", back_populates="pagos_fijos")
 
 class PasswordReset(Base):
     __tablename__ = "password_resets"

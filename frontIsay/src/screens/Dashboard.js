@@ -4,28 +4,31 @@ import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { Picker } from "@react-native-picker/picker";
 import { getResumen, getTendencias, getCategorias } from "../utils/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function Dashboard() {
   const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, total_ahorros: 0, balance: 0 });
   const [tendencias, setTendencias] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [tipo, setTipo] = useState("egreso"); // Gastos
+  const [tipo, setTipo] = useState("egreso"); 
 
 useFocusEffect(
   useCallback(() => {
     const cargarDatos = async () => {
-      const resumenData = await getResumen();
+      const usuario_id = parseInt(await AsyncStorage.getItem('usuario_id'));
+      const resumenData = await getResumen(usuario_id);
       setResumen(resumenData);
 
-      const tendenciasData = await getTendencias(tipo);
+      const tendenciasData = await getTendencias(tipo, usuario_id);
       setTendencias(tendenciasData);
 
-      const categoriasData = await getCategorias(tipo);
+      const categoriasData = await getCategorias(tipo, usuario_id);
       setCategorias(categoriasData);
     };
 
     cargarDatos();
-  }, [tipo]) // Se vuelve a ejecutar si cambia el tipo
+  }, [tipo]) 
 );
 
 
@@ -79,7 +82,6 @@ useFocusEffect(
       >
         <Picker.Item label="Gastos" value="egreso" />
         <Picker.Item label="Ingresos" value="ingreso" />
-        <Picker.Item label="Ahorros" value="ahorro" />
       </Picker>
 
       {/* Tendencia (barras) */}

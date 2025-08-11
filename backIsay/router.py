@@ -11,8 +11,7 @@ from schemas import (
     TransaccionBase, TransaccionCreate, TransaccionRead as SchemaTransaccion, 
     PagoFijoBase, PagoFijoCreate, PagoFijoRead as SchemaPagoFijo, PagoFijoOut,
     CategoriaTotal, TendenciaMensual, ResumenFinanciero, UsuarioRead,
-    NotificacionCreate, NotificacionRead
-    
+    NotificacionCreate, NotificacionRead, BalanceAlertaOut
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -227,11 +226,30 @@ def get_categories(db: Session = Depends(get_db)):
     return db.query(Categoria).all()
 
 @router.get("/pagos-fijos", response_model=List[PagoFijoOut], tags=["Pagos Fijos"])
-def listar_pagos_fijos(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
-    query = db.query(PagoFijo)
-    if usuario_id:
-        query = query.filter(PagoFijo.usuario_id == usuario_id)
-    return query.all()
+def get_pagos_fijos(db: Session = Depends(get_db)):
+    hoy = date.today()
+    pagos = db.query(PagoFijo).all()
+
+    pagos_con_estado = []
+    for pago in pagos:
+        estado = "Vencido" if pago.fecha < hoy else "Activo"
+        pagos_con_estado.append({
+            "id": pago.id,
+            "usuario_id": pago.usuario_id,
+            "categoria_id": pago.categoria_id,
+            "categoria": {
+                "id": pago.categoria.id,
+                "nombre": pago.categoria.nombre
+            },
+            "monto": pago.monto,
+            "fecha": pago.fecha,
+            "fecha_creacion": pago.fecha_creacion,
+            "estado": estado,
+            "frecuencia": getattr(pago, "frecuencia", None),  
+            "nombre": getattr(pago, "descripcion", None)
+        })
+
+    return pagos_con_estado
 
 @router.get("/pagos-fijos/{pago_id}", response_model=SchemaPagoFijo, tags=["Pagos Fijos"])
 def obtener_pago_fijo(pago_id: int, db: Session = Depends(get_db)):
@@ -296,9 +314,59 @@ def listar_pagos_fijos_por_usuario(usuario_id: int, db: Session = Depends(get_db
     
     return db.query(PagoFijo).filter(PagoFijo.usuario_id == usuario_id).all()
 
+@router.get("/pagos-fijos/{usuario_id}/balance-alerta", response_model=BalanceAlertaOut)
+def verificar_balance(usuario_id: int, db: Session = Depends(get_db)):
+    transacciones = db.query(Transaccion).filter(Transaccion.usuario_id == usuario_id).all()
+    pagos_fijos = db.query(PagoFijo).filter(PagoFijo.usuario_id == usuario_id).all()
+
+    total_ingresos = sum(t.monto for t in transacciones if t.tipo == "ingreso")
+    total_egresos  = sum(t.monto for t in transacciones if t.tipo == "egreso")
+    total_pagos_fijos = sum(p.monto for p in pagos_fijos)
+
+    ahorro_disponible = total_ingresos - total_egresos
+    falta = total_pagos_fijos - ahorro_disponible
+    print(f"Total Ingresos: {total_ingresos}, Total Egresos: {total_egresos}, Total Pagos Fijos: {total_pagos_fijos}, Ahorro Disponible: {ahorro_disponible}, Faltante: {falta}")
+    return {
+        "ahorro": round(ahorro_disponible, 2),
+        "total_pagos_fijos": round(total_pagos_fijos, 2),
+        "alerta": ahorro_disponible < total_pagos_fijos,
+        "faltante": round(falta, 2) if falta > 0 else 0
+    }
+
+
+@router.get("/resumen-financiero")
+def resumen_financiero(usuario_id: int, db: Session = Depends(get_db)):
+    pagos = (
+        db.query(PagoFijo)
+        .filter(PagoFijo.usuario_id == usuario_id)
+        .all()
+    )
+    total_pagos_fijos = sum(p.monto for p in pagos)
+
+    transacciones = (
+        db.query(Transaccion)
+        .filter(Transaccion.usuario_id == usuario_id)
+        .all()
+    )
+
+    total_ingresos = sum(t.monto for t in transacciones if t.tipo == "ingreso")
+    total_egresos = sum(t.monto for t in transacciones if t.tipo == "egreso")
+
+    balance_disponible = total_ingresos - total_egresos - total_pagos_fijos
+
+    return {
+        "pagos_programados": len(pagos),
+        "total_mensual": total_pagos_fijos,
+        "balance_disponible": round(balance_disponible, 2),
+        "total_ingresos": round(total_ingresos, 2),
+        "total_egresos": round(total_egresos, 2),
+    }
+
+
+
 # Endpoints de Gráficas y Reportes
 @router.get("/graficas/categorias", response_model=List[CategoriaTotal], tags=["Gráficas"])
-def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
+def graficas_por_categoria(tipo: str, usuario_id: int, db: Session = Depends(get_db)):
     totales = defaultdict(float)
     transacciones_con_categorias = db.query(Transaccion, Categoria.nombre).join(
         Categoria, Transaccion.categoria_id == Categoria.id
@@ -314,7 +382,7 @@ def graficas_por_categoria(tipo: str, usuario_id: int = 1, db: Session = Depends
     return [{"categoria": cat, "total": total} for cat, total in totales.items()]
 
 @router.get("/graficas/tendencias", response_model=List[TendenciaMensual], tags=["Gráficas"])
-def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(get_db)):
+def tendencias_mensuales(tipo: str, usuario_id: int, db: Session = Depends(get_db)):
     totales_por_mes = defaultdict(float)
 
     transacciones = db.query(Transaccion).filter(
@@ -333,7 +401,7 @@ def tendencias_mensuales(tipo: str, usuario_id: int = 1, db: Session = Depends(g
     ] 
 
 @router.get("/resumen", response_model=ResumenFinanciero, tags=["Resumen Financiero"])
-def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
+def resumen_financiero(usuario_id: int, db: Session = Depends(get_db)):
     ingresos = db.query(Transaccion).filter(
         Transaccion.usuario_id == usuario_id,
         Transaccion.tipo == "ingreso"
