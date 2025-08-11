@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  ScrollView
+  View, Text, StyleSheet, FlatList, TouchableOpacity, Modal,
+  TextInput, Alert, ActivityIndicator
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -17,10 +9,10 @@ import { Picker } from "@react-native-picker/picker";
 const API_URL = "http://192.168.100.44:8000";
 
 const ajustarFecha = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
 export default function Transacciones() {
@@ -31,7 +23,8 @@ export default function Transacciones() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [tipo, setTipo] = useState(""); 
+  const [categoria, setCategoria] = useState(""); 
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -55,7 +48,7 @@ export default function Transacciones() {
       const res = await fetch(`${API_URL}/categorias`);
       const data = await res.json();
       setCategorias(data);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "No se pudieron cargar las categorías");
     }
   };
@@ -66,7 +59,7 @@ export default function Transacciones() {
       const res = await fetch(`${API_URL}/transacciones`);
       const data = await res.json();
       setTransacciones(data);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "No se pudieron cargar las transacciones");
     } finally {
       setLoading(false);
@@ -74,29 +67,27 @@ export default function Transacciones() {
   };
 
   const crearTransaccion = async () => {
-    if (!monto || !categoria || !descripcion || !fecha) {
+    if (!monto || !tipo || !categoria || !descripcion || !fecha) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
-
     try {
       const res = await fetch(`${API_URL}/transacciones`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           monto: parseFloat(monto),
-          categoria,
+          tipo,
+          categoria, // nombre
           descripcion,
           fecha,
         }),
       });
-
-      if (!res.ok) throw new Error("Error al crear transacción");
-
+      if (!res.ok) throw new Error();
       setModalVisible(false);
       limpiarCampos();
       fetchTransacciones();
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Error creando transacción");
     }
   };
@@ -104,15 +95,16 @@ export default function Transacciones() {
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setCategoria(item.categoria); 
-    setDescripcion(item.descripcion);
-    setFecha(item.fecha);
-    setEditDate(new Date(item.fecha));
+    setTipo((item.tipo || "").toLowerCase());
+    setCategoria(item.categoria || "");
+    setDescripcion(item.descripcion || "");
+    setFecha(item.fecha || "");
+    setEditDate(item.fecha ? new Date(item.fecha) : new Date());
     setModalEditarVisible(true);
   };
 
   const editarTransaccion = async () => {
-    if (!monto || !categoria || !descripcion || !fecha) {
+    if (!monto || !tipo || !categoria || !descripcion || !fecha) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
@@ -122,18 +114,17 @@ export default function Transacciones() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           monto: parseFloat(monto),
+          tipo,
           categoria,
           descripcion,
           fecha,
         }),
       });
-
-      if (!res.ok) throw new Error("Error al editar transacción");
-
+      if (!res.ok) throw new Error();
       setModalEditarVisible(false);
       limpiarCampos();
       fetchTransacciones();
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Error editando transacción");
     }
   };
@@ -145,29 +136,22 @@ export default function Transacciones() {
 
   const eliminarTransaccion = async () => {
     try {
-      const res = await fetch(`${API_URL}/transacciones/${deleteId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Error al eliminar transacción");
-
+      const res = await fetch(`${API_URL}/transacciones/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
       setModalEliminarVisible(false);
       fetchTransacciones();
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Error eliminando transacción");
     }
   };
 
   const limpiarCampos = () => {
-    setMonto("");
-    setCategoria("");
-    setDescripcion("");
-    setFecha("");
-    setDate(new Date());
-    setEditDate(new Date());
+    setMonto(""); setTipo(""); setCategoria("");
+    setDescripcion(""); setFecha("");
+    setDate(new Date()); setEditDate(new Date());
   };
 
-  const onChangeDate = (event, selectedDate) => {
+  const onChangeDate = (_, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDate(selectedDate);
@@ -175,7 +159,7 @@ export default function Transacciones() {
     }
   };
 
-  const onChangeEditDate = (event, selectedDate) => {
+  const onChangeEditDate = (_, selectedDate) => {
     setEditShowDatePicker(false);
     if (selectedDate) {
       setEditDate(selectedDate);
@@ -183,42 +167,21 @@ export default function Transacciones() {
     }
   };
 
-  const renderCardItem = ({ item }) => {
-    const tipo = item.tipo.toLowerCase();
-    const cardBackground =
-      tipo === "ingreso"
-        ? "#d4edda"
-        : tipo === "egreso"
-        ? "#f8d7da"
-        : "#fff3cd";
+  const categoriasFiltradas = tipo ? categorias.filter((c) => c.tipo === tipo) : categorias;
 
+  const renderCardItem = ({ item }) => {
+    const t = (item.tipo || "").toLowerCase();
+    const cardBackground = t === "ingreso" ? "#d4edda" : t === "egreso" ? "#f8d7da" : "#fff3cd";
     return (
       <View style={[styles.card, { backgroundColor: cardBackground }]}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Monto:</Text>
-          <Text style={styles.cardValue}>${item.monto}</Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Tipo:</Text>
-          <Text style={styles.cardValue}>
-            {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
-          </Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Descripción:</Text>
-          <Text style={styles.cardValue}>{item.descripcion}</Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Fecha:</Text>
-          <Text style={styles.cardValue}>{item.fecha}</Text>
-        </View>
+        <View style={styles.cardRow}><Text style={styles.cardLabel}>Monto:</Text><Text style={styles.cardValue}>${item.monto}</Text></View>
+        <View style={styles.cardRow}><Text style={styles.cardLabel}>Tipo:</Text><Text style={styles.cardValue}>{item.tipo?.charAt(0).toUpperCase() + item.tipo?.slice(1)}</Text></View>
+        <View style={styles.cardRow}><Text style={styles.cardLabel}>Categoría:</Text><Text style={styles.cardValue}>{item.categoria}</Text></View>
+        <View style={styles.cardRow}><Text style={styles.cardLabel}>Descripción:</Text><Text style={styles.cardValue}>{item.descripcion}</Text></View>
+        <View style={styles.cardRow}><Text style={styles.cardLabel}>Fecha:</Text><Text style={styles.cardValue}>{item.fecha}</Text></View>
         <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => abrirModalEditar(item)}>
-            <Text style={styles.editText}>✏️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}>
-            <Text style={styles.deleteText}>🗑️</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={() => abrirModalEditar(item)}><Text style={styles.editText}>✏️</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}><Text style={styles.deleteText}>🗑️</Text></TouchableOpacity>
         </View>
       </View>
     );
@@ -233,76 +196,65 @@ export default function Transacciones() {
       ) : (
         <FlatList
           data={transacciones}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => String(item.id)}
           renderItem={renderCardItem}
           contentContainerStyle={{ paddingBottom: 80 }}
         />
       )}
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* MODALES */}
       {/* Crear */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Nueva Transacción</Text>
+
             <Text style={styles.label}>Monto</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Monto"
-              keyboardType="numeric"
-              value={monto}
-              onChangeText={setMonto}
-            />
+            <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
+
+            <Text style={styles.label}>Tipo</Text>
+            <Picker
+              selectedValue={tipo}
+              onValueChange={(v) => { setTipo(v); setCategoria(""); }}
+              style={{ marginBottom: 10, color: "#000" }}
+              dropdownIconColor="#000"
+            >
+              <Picker.Item label="Selecciona el tipo" value="" color="#888" />
+              <Picker.Item label="Ingreso" value="ingreso" />
+              <Picker.Item label="Egreso" value="egreso" />
+              <Picker.Item label="Ahorro" value="ahorro" />
+            </Picker>
+
             <Text style={styles.label}>Categoría</Text>
             <Picker
-            selectedValue={categoria}
-            onValueChange={setCategoria}
-            style={{ marginBottom: 10, color: '#000' }} 
-            dropdownIconColor={'#000'}
+              selectedValue={categoria}
+              onValueChange={setCategoria}
+              style={{ marginBottom: 10, color: "#000" }}
+              dropdownIconColor="#000"
             >
-            {categorias.map((c) => (
-            <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-            ))}
+              <Picker.Item label="Selecciona la categoría" value="" color="#888" />
+              {categoriasFiltradas.map((c) => (
+                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} />
+              ))}
             </Picker>
+
             <Text style={styles.label}>Descripción</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Descripción"
-              value={descripcion}
-              onChangeText={setDescripcion}
-            />
+            <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
+
             <Text style={styles.label}>Fecha</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowDatePicker(true)}
-            >
+            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
               <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
             </TouchableOpacity>
             {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onChangeDate}
-              />
+              <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} />
             )}
+
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.addButton} onPress={crearTransaccion}>
-                <Text style={styles.addButtonText}>Agregar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.addButton} onPress={crearTransaccion}><Text style={styles.addButtonText}>Agregar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -313,57 +265,50 @@ export default function Transacciones() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Editar Transacción</Text>
+
             <Text style={styles.label}>Monto</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Monto"
-              keyboardType="numeric"
-              value={monto}
-              onChangeText={setMonto}
-            />
+            <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
+
+            <Text style={styles.label}>Tipo</Text>
+            <Picker
+              selectedValue={tipo}
+              onValueChange={(v) => { setTipo(v); setCategoria(""); }}
+              style={{ marginBottom: 10, color: "#000" }}
+              dropdownIconColor="#000"
+            >
+              <Picker.Item label="Selecciona el tipo" value="" color="#888" />
+              <Picker.Item label="Ingreso" value="ingreso" />
+              <Picker.Item label="Egreso" value="egreso" />
+              <Picker.Item label="Ahorro" value="ahorro" />
+            </Picker>
+
             <Text style={styles.label}>Categoría</Text>
             <Picker
-            selectedValue={categoria}
-            onValueChange={setCategoria}
-            style={{ marginBottom: 10, color: '#000' }}
-            dropdownIconColor={'#000'}
+              selectedValue={categoria}
+              onValueChange={setCategoria}
+              style={{ marginBottom: 10, color: "#000" }}
+              dropdownIconColor="#000"
             >
-            {categorias.map((c) => (
-            <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-             ))}
+              <Picker.Item label="Selecciona la categoría" value="" color="#888" />
+              {(tipo ? categorias.filter((c) => c.tipo === tipo) : categorias).map((c) => (
+                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} />
+              ))}
             </Picker>
+
             <Text style={styles.label}>Descripción</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Descripción"
-              value={descripcion}
-              onChangeText={setDescripcion}
-            />
+            <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
+
             <Text style={styles.label}>Fecha</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setEditShowDatePicker(true)}
-            >
+            <TouchableOpacity style={styles.input} onPress={() => setEditShowDatePicker(true)}>
               <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
             </TouchableOpacity>
             {editShowDatePicker && (
-              <DateTimePicker
-                value={editDate}
-                mode="date"
-                display="default"
-                onChange={onChangeEditDate}
-              />
+              <DateTimePicker value={editDate} mode="date" display="default" onChange={onChangeEditDate} />
             )}
+
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.addButton} onPress={editarTransaccion}>
-                <Text style={styles.addButtonText}>Guardar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalEditarVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.addButton} onPress={editarTransaccion}><Text style={styles.addButtonText}>Guardar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalEditarVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -375,15 +320,8 @@ export default function Transacciones() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>¿Eliminar transacción?</Text>
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.addButton} onPress={eliminarTransaccion}>
-                <Text style={styles.addButtonText}>Eliminar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalEliminarVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.addButton} onPress={eliminarTransaccion}><Text style={styles.addButtonText}>Eliminar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalEliminarVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -395,94 +333,23 @@ export default function Transacciones() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   title: { fontSize: 18, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
-
-  fab: {
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "#007bff",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-  },
+  fab: { position: "absolute", bottom: 20, right: 20, backgroundColor: "#007bff", width: 50, height: 50, borderRadius: 25, justifyContent: "center", alignItems: "center", elevation: 5 },
   fabText: { color: "#fff", fontSize: 24, fontWeight: "bold" },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
-  addButton: {
-    backgroundColor: "#007bff",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" },
+  modalContainer: { width: "85%", backgroundColor: "#fff", borderRadius: 15, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 15, textAlign: "center" },
+  label: { fontSize: 14, fontWeight: "bold", marginBottom: 4, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, marginBottom: 10 },
+  buttonRow: { flexDirection: "row", justifyContent: "space-around", marginTop: 10 },
+  addButton: { backgroundColor: "#007bff", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
   addButtonText: { color: "#fff", fontWeight: "bold" },
   cancelButton: { paddingVertical: 10, paddingHorizontal: 20 },
   cancelButtonText: { color: "#007bff", fontWeight: "bold" },
   editText: { marginRight: 15, fontSize: 18 },
   deleteText: { fontSize: 18 },
-
-  card: {
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  cardLabel: {
-    fontWeight: "bold",
-    color: "#333",
-  },
-  cardValue: {
-    color: "#212529",
-  },
-  cardActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 10,
-  },
+  card: { borderRadius: 10, padding: 15, marginBottom: 12, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 },
+  cardRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+  cardLabel: { fontWeight: "bold", color: "#333" },
+  cardValue: { color: "#212529" },
+  cardActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 10 },
 });

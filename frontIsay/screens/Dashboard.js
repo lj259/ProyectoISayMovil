@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [resumen, setResumen] = useState({ total_ingresos: 0, total_egresos: 0, total_ahorros: 0, balance: 0 });
   const [tendencias, setTendencias] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [tipo, setTipo] = useState("egreso"); // Gastos
+  const [tipo, setTipo] = useState("egreso"); 
 
   useEffect(() => {
     fetchResumen();
