@@ -202,3 +202,8 @@ VALUES
   (1,   75.50, 4, 'gasto',   'Supermercado',           '2025-07-03', 0),
   (1,  159.00, 7, 'gasto',   'Netflix',                '2025-07-15', 1),
   (2,  300.00, 6, 'gasto',   'Taxi mensual',           '2025-07-02', 1);
+
+ALTER TABLE usuarios ADD COLUMN recibir_email BOOLEAN DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN recibir_sms BOOLEAN DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN alertas_presupuesto BOOLEAN DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN recordatorios_pago BOOLEAN DEFAULT FALSE;

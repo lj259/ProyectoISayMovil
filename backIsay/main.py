@@ -1,4 +1,3 @@
-
 import uuid
 from datetime import date, datetime, timedelta
 from collections import defaultdict
@@ -292,6 +291,9 @@ def password_recovery(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
+    """
+    Endpoint para solicitar recuperación de contraseña
+    """
     u = db.query(UsuarioDB).filter(UsuarioDB.correo == req.correo).first()
     mensaje = {"mensaje": "Si el correo existe, recibirás instrucciones por email."}
     if not u:
@@ -299,32 +301,24 @@ def password_recovery(
     token = str(uuid.uuid4())
     expires = datetime.utcnow() + timedelta(hours=1)
     pr = PasswordResetDB(user_id=u.id, token=token, expires_at=expires)
-    db.add(pr); db.commit()
+    db.add(pr)
+    db.commit()
     background_tasks.add_task(send_recovery_email, u.correo, token)
     return mensaje
 
 @app.post("/reset-password/{token}", tags=["Usuarios"])
 def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    """
+    Endpoint para reestablecer contraseña usando token
+    """
     pr = db.query(PasswordResetDB).filter(PasswordResetDB.token == token).first()
     if not pr or pr.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
     u = db.get(UsuarioDB, pr.user_id)
-    u.contraseña = req.nueva_contraseña    
+    u.contraseña = pwd_context.hash(req.nueva_contraseña)
     db.delete(pr)
     db.commit()
     return {"mensaje": "Contraseña reestablecida correctamente"}
-
-@app.post("/reset-password/{token}", tags=["Usuarios"])
-def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
-    pr = db.query(PasswordResetDB).filter(PasswordResetDB.token == token).first()
-    if not pr or pr.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="Token inválido o expirado")
-    u = db.get(UsuarioDB, pr.user_id)
-    u.contraseña_hash = pwd_context.hash(req.nueva_contraseña)
-    db.delete(pr)
-    db.commit()
-    return {"mensaje": "Contraseña reestablecida correctamente"}
-
 
 # --- Recuperación de contraseña ---
 @app.post("/password-recovery", tags=["Usuarios"])
@@ -541,16 +535,3 @@ def eliminar_notificacion(notif_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Notificación no encontrada")
     db.delete(n); db.commit()
 
-@app.put("/usuarios/{usuario_id}", response_model=UsuarioRead, tags=["Usuarios"])
-def actualizar_usuario(usuario_id: int, datos: UsuarioBase, db: Session = Depends(get_db)):
-    u = db.query(UsuarioDB).get(usuario_id)
-    if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    u.nombre_usuario = datos.nombre_usuario
-    u.correo = datos.correo
-    u.telefono = datos.telefono
-
-    db.commit()
-    db.refresh(u)
-    return u
