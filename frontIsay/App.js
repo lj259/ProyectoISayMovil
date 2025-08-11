@@ -1,133 +1,62 @@
-
-import 'react-native-gesture-handler';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import Dashboard from './src/screens/Dashboard';
+import Transacciones from './src/screens/Transacciones'; 
+import InicioScreen from './src/screens/InicioScreen';
+import RegistroScreen from './src/screens/RegistroScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import PerfilScreen from './src/screens/PerfilScreen'; // Placeholder for Perfil screen
+import EditarPerfilScreen from './src/screens/EditarPerfil'; // 
+import ConfiguracionScreen from './src/screens/Configuracion'; // Pl
+import PresupuestoScreen from './src/screens/PresupuestosScreen';
+import PagosFijosScreen from './src/screens/PagosfijosScreen';
 
-// Auth Screens
-import Login from './screens/Login';
-import Register from './screens/Register';
-// Main Screens
-import Home from './screens/Home';
-import TransaccionesList from './screens/TransaccionesList';
-import TransaccionForm from './screens/TransaccionForm';
-import PresupuestosList from './screens/PresupuestosList';
-import PresupuestoForm from './screens/PresupuestoForm';
-import PagoFijosList from './screens/PagoFijosList';
-import PagoFijoForm from './screens/PagoFijoForm';
-import Perfil from './screens/Perfil';
-import EditarPerfil from './screens/EditarPerfil';
-import Configuracion from './screens/Configuracion';
 
-const RootStack = createNativeStackNavigator();
-const AuthStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-
-function AuthStackScreen() {
-  return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login" component={Login} />
-      <AuthStack.Screen name="Register" component={Register} />
-    </AuthStack.Navigator>
-  );
-}
-
-function TransaccionesStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="TransaccionesList" component={TransaccionesList} options={{ title: 'Transacciones' }} />
-      <Stack.Screen name="TransaccionForm" component={TransaccionForm} options={{ title: 'Formulario' }} />
-    </Stack.Navigator>
-  );
-}
-
-function PresupuestosStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="PresupuestosList" component={PresupuestosList} options={{ title: 'Presupuestos' }} />
-      <Stack.Screen name="PresupuestoForm" component={PresupuestoForm} options={{ title: 'Formulario' }} />
-    </Stack.Navigator>
-  );
-}
-
-function PagoFijosStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="PagoFijosList" component={PagoFijosList} options={{ title: 'Pagos Fijos' }} />
-      <Stack.Screen name="PagoFijoForm" component={PagoFijoForm} options={{ title: 'Formulario' }} />
-    </Stack.Navigator>
-  );
-}
-
-function PerfilStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="PerfilHome" component={Perfil} options={{ title: 'Mi Perfil' }} />
-      <Stack.Screen name="EditarPerfil" component={EditarPerfil} options={{ title: 'Editar Perfil' }} />
-      <Stack.Screen name="Configuracion" component={Configuracion} options={{ title: 'Configuración' }} />
-    </Stack.Navigator>
-  );
-}
-
-function MainTabs() {
+function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          switch (route.name) {
-            case 'Home': iconName = 'home'; break;
-            case 'Transacciones': iconName = 'swap-horizontal'; break;
-            case 'Presupuestos': iconName = 'reader'; break;
-            case 'Pagos Fijos': iconName = 'cash'; break;
-            case 'Perfil': iconName = 'person'; break;
-            case 'Configuración': iconName = 'settings'; break;
-          }
+          if (route.name === 'Dashboard') iconName = 'stats-chart';
+          else if (route.name === 'Transacciones') iconName = 'list';
+          else if (route.name === 'Presupuesto') iconName = 'cash';
+          else if (route.name === 'Pagos Fijos') iconName = 'repeat';
+          else if (route.name === 'Perfil') iconName = 'person';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2ecc71',
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Transacciones" component={TransaccionesStack} />
-      <Tab.Screen name="Presupuestos" component={PresupuestosStack} />
-      <Tab.Screen name="Pagos Fijos" component={PagoFijosStack} />
-      <Tab.Screen name="Perfil" component={PerfilStack} />
-      <Tab.Screen name="Configuración" component={Configuracion} />
+      <Tab.Screen name="Dashboard" component={Dashboard} />
+      <Tab.Screen name="Transacciones" component={Transacciones} />
+      <Tab.Screen name="Presupuesto" component={PresupuestoScreen} /> 
+      <Tab.Screen name="Pagos Fijos" component={PagosFijosScreen} /> 
+      <Tab.Screen name="Perfil" component={PerfilScreen} /> 
     </Tab.Navigator>
   );
 }
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    AsyncStorage.getItem('userId').then(id => {
-      setLoggedIn(!!id);
-      setChecking(false);
-    });
-  }, []);
-
-  if (checking) return null;
-
   return (
     <NavigationContainer>
       <StatusBar style="auto" />
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {loggedIn ? (
-          <RootStack.Screen name="Main" component={MainTabs} />
-        ) : (
-          <RootStack.Screen name="Auth" component={AuthStackScreen} />
-        )}
-      </RootStack.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Inicio" component={InicioScreen} />
+        <Stack.Screen name="Registro" component={RegistroScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Home" component={TabNavigator} />
+        <Stack.Screen name="Ajustes" component={EditarPerfilScreen} />
+        <Stack.Screen name="Configuracion" component={ConfiguracionScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
