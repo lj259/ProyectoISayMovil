@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,61 @@ import {
   Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import { fetchCategorias } from "../utils/api";
+import { crearPagoFijo } from "../utils/api";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PagosFijosScreen() {
   const [modalAdd, setModalAdd] = useState(false);
   const [modalEdit, setModalEdit] = useState(false);
   const [modalDelete, setModalDelete] = useState(false);
-  const [autoRegister, setAutoRegister] = useState(false);
+  
+  const [fechaVencimiento, setFechaVencimiento] = useState(new Date());
+  const [mostrarFechaPicker, setMostrarFechaPicker] = useState(false);
+
+  const [categorias, setCategorias] = useState([]);
+  const [nombrePago, setNombrePago] = useState("");
+  const [monto, setMonto] = useState("");
+
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  const handleGuardarPago = async () => {
+    const usuario_id = parseInt(await AsyncStorage.getItem('usuario_id'));
+    const nuevoPago = {
+      descripcion: nombrePago,
+      usuario_id: usuario_id,
+      categoria_id: selectedCategory,
+      monto: parseFloat(monto),
+      fecha: fechaVencimiento.toISOString().split("T")[0]
+    };
+
+    try {
+      console.log("Guardando pago fijo:", nuevoPago);
+      const response = await crearPagoFijo(nuevoPago);
+      console.log("Respuesta del servidor:", response);
+      setModalAdd(false);
+      // Aquí podrías recargar la lista de pagos o mostrar un mensaje
+    } catch (err) {
+      console.error("Error al guardar pago:", err);
+    }
+  };
+  const onSelect = (value) => {
+    setSelectedCategory(value);
+  };
+
+  useEffect(() => {
+    const loadCategorias = async () => {
+      try {
+        const data = await fetchCategorias();
+        setCategorias(data);
+      } catch (err) {
+        console.error("Error al cargar categorías:", err);
+      }
+    };
+    loadCategorias();
+  }, []);
 
   return (
     <ScrollView style={styles.container}>
@@ -24,17 +73,6 @@ export default function PagosFijosScreen() {
         <Text style={styles.titleGreen}>Lana</Text> App
       </Text>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        {["Dashboard", "Transacciones", "Presupuestos", "Pagos fijos", "Configuración"].map((tab, i) => (
-          <Text
-            key={i}
-            style={[styles.tabText, tab === "Pagos fijos" && styles.activeTab]}
-          >
-            {tab}
-          </Text>
-        ))}
-      </View>
 
       {/* Section Title */}
       <View style={styles.headerRow}>
@@ -105,18 +143,40 @@ export default function PagosFijosScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Agrega un nuevo Pago Fijo</Text>
-            <TextInput placeholder="Nombre del Pago" style={styles.input} />
-            <TextInput placeholder="Monto" style={styles.input} keyboardType="numeric" />
-            <TextInput placeholder="Categoría" style={styles.input} />
-            <TextInput placeholder="Fecha de vencimiento (dd/mm/aa)" style={styles.input} />
-            <TextInput placeholder="Frecuencia" style={styles.input} />
-            <View style={styles.switchRow}>
-              <Switch value={autoRegister} onValueChange={setAutoRegister} />
-              <Text style={{ marginLeft: 8 }}>Registrar automáticamente como transacción</Text>
+            <TextInput placeholder="Nombre del Pago" style={styles.input} onChangeText={setNombrePago} />
+            <TextInput placeholder="Monto" style={styles.input} keyboardType="numeric" onChangeText={setMonto} />
+            <View style={styles.input}>
+              <Picker
+                selectedValue={selectedCategory}
+                onValueChange={onSelect}
+              >
+                <Picker.Item label="Selecciona una categoría" value="" />
+                {categorias.map((cat) => (
+                  <Picker.Item key={cat.id} label={cat.nombre} value={cat.id} />
+                ))}
+              </Picker>
             </View>
-            <TouchableOpacity style={styles.primaryBtn} onPress={() => setModalAdd(false)}>
+
+            <TouchableOpacity onPress={() => setMostrarFechaPicker(true)} style={styles.input}>
+              <Text>{fechaVencimiento.toLocaleDateString()}</Text>
+            </TouchableOpacity>
+
+            {mostrarFechaPicker && (
+              <DateTimePicker
+                value={fechaVencimiento}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setMostrarFechaPicker(false);
+                  if (selectedDate) setFechaVencimiento(selectedDate);
+                }}
+              />
+            )}
+            
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleGuardarPago}>
               <Text style={styles.primaryBtnText}>Guardar pago</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalAdd(false)}>
               <Text>Cancelar</Text>
             </TouchableOpacity>
@@ -131,8 +191,34 @@ export default function PagosFijosScreen() {
             <Text style={styles.modalTitle}>Editar Pago Fijo</Text>
             <TextInput placeholder="Nombre del Pago" style={styles.input} />
             <TextInput placeholder="Monto" style={styles.input} keyboardType="numeric" />
-            <TextInput placeholder="Categoría" style={styles.input} />
-            <TextInput placeholder="Fecha de vencimiento (dd/mm/aa)" style={styles.input} />
+            <View style={styles.input}>
+              <Picker
+                selectedValue={selectedCategory}
+                onValueChange={onSelect}
+              >
+                <Picker.Item label="Selecciona una categoría" value="" />
+                {categorias.map((cat) => (
+                  <Picker.Item key={cat.id} label={cat.nombre} value={cat.id} />
+                ))}
+              </Picker>
+            </View>
+
+            <TouchableOpacity onPress={() => setMostrarFechaPicker(true)} style={styles.input}>
+              <Text>{fechaVencimiento.toLocaleDateString()}</Text>
+            </TouchableOpacity>
+
+            {mostrarFechaPicker && (
+              <DateTimePicker
+                value={fechaVencimiento}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setMostrarFechaPicker(false);
+                  if (selectedDate) setFechaVencimiento(selectedDate);
+                }}
+              />
+            )}
+
             <TextInput placeholder="Frecuencia" style={styles.input} />
             <TouchableOpacity style={styles.primaryBtnBlack} onPress={() => setModalEdit(false)}>
               <Text style={styles.primaryBtnText}>Actualizar pago</Text>

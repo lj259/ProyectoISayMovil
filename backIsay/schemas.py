@@ -85,8 +85,9 @@ class TransaccionOut(BaseModel):
         
 # --- Pagos Fijos ---
 class PagoFijoBase(BaseModel):
-    usuario_id: int
     descripcion: str
+    usuario_id: int
+    categoria_id: int
     monto: float
     fecha: date
 
@@ -98,11 +99,22 @@ class PagoFijoRead(PagoFijoBase):
     class Config:
         orm_mode = True
 
+class PagoFijoOut(BaseModel): pass
+
 # --- Categorias ---
 class CategoriaTotal(BaseModel):
     categoria: str
     total: float
 
+class Categoria(BaseModel):
+    id: int
+    nombre: str
+    tipo: str
+    usuario_id: int
+    es_predeterminada: bool
+
+    class Config:
+        orm_mode = True
 
 class TendenciaMensual(BaseModel):
     mes: str

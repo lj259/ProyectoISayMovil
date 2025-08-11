@@ -41,11 +41,15 @@ export default function Perfil({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Header */}
+        <Text style={styles.title_logo}>
+          <Text style={styles.titleGreen}>Lana</Text> App
+        </Text>
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>Mi Perfil</Text>
             <View style={styles.icons}>
-              <TouchableOpacity onPress={() => navigation.navigate('EditarPerfil')}>
+              <TouchableOpacity onPress={() => navigation.navigate('Ajustes')}>
                 <Ionicons name="pencil" size={24} style={styles.icon} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Configuracion')}>
@@ -94,5 +98,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginTop: 4,
     color: '#000'
-  }
+  },
+    title_logo: { fontSize: 28, fontWeight: "bold", marginBottom: 10 },
+  titleGreen: { color: "#6ab04c" },
 });

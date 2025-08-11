@@ -10,18 +10,6 @@ export default function PresupuestoScreen() {
         <Text style={styles.titleGreen}>Lana</Text> App
       </Text>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        {["Dashboard", "Transacciones", "Presupuestos", "Pagos fijos", "Configuración"].map((tab, i) => (
-          <Text
-            key={i}
-            style={[styles.tabText, tab === "Presupuestos" && styles.activeTab]}
-          >
-            {tab}
-          </Text>
-        ))}
-      </View>
-
       {/* Title and subtitle */}
       <Text style={styles.sectionTitle}>Control de Presupuesto</Text>
       <Text style={styles.sectionSubtitle}>

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { BarChart, PieChart } from "react-native-chart-kit";
 import { Picker } from "@react-native-picker/picker";
@@ -10,23 +11,23 @@ export default function Dashboard() {
   const [categorias, setCategorias] = useState([]);
   const [tipo, setTipo] = useState("egreso"); // Gastos
 
-  useEffect(() => {
-    const cargarResumen = async () => {
-      const data = await getResumen();
-      setResumen(data);
-    };
-    cargarResumen();
-  }, []);
+useFocusEffect(
+  useCallback(() => {
+    const cargarDatos = async () => {
+      const resumenData = await getResumen();
+      setResumen(resumenData);
 
-  useEffect(() => {
-    const cargarGraficas = async () => {
-      const t = await getTendencias(tipo);
-      const c = await getCategorias(tipo);
-      setTendencias(t);
-      setCategorias(c);
+      const tendenciasData = await getTendencias(tipo);
+      setTendencias(tendenciasData);
+
+      const categoriasData = await getCategorias(tipo);
+      setCategorias(categoriasData);
     };
-    cargarGraficas();
-  }, [tipo]);
+
+    cargarDatos();
+  }, [tipo]) // Se vuelve a ejecutar si cambia el tipo
+);
+
 
   // Datos para la gráfica de barras
   const barData = {
@@ -45,6 +46,10 @@ export default function Dashboard() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
+            <Text style={styles.title_logo}>
+              <Text style={styles.titleGreen}>Lana</Text> App
+            </Text>
       {/* Resumen financiero */}
       <View style={styles.cardContainer}>
         <View style={styles.card}>
@@ -91,16 +96,23 @@ export default function Dashboard() {
 
       {/* Distribución (circular) */}
       <Text style={styles.sectionTitle}>Distribución por categoría</Text>
-      <PieChart
-        data={pieData}
-        width={Dimensions.get("window").width - 40}
-        height={220}
-        accessor="population"
-        backgroundColor="transparent"
-        paddingLeft="15"
-        chartConfig={chartConfig}
-        absolute
-      />
+      {categorias.length > 0 ? (
+        <PieChart
+          data={pieData}
+          width={Dimensions.get("window").width - 40}
+          height={220}
+          accessor="population"
+          backgroundColor="transparent"
+          paddingLeft="15"
+          chartConfig={chartConfig}
+          absolute
+        />
+      ) : (
+        <Text style={{ textAlign: "center", color: "#777" }}>
+          No hay datos para mostrar en esta categoría
+        </Text>
+      )}
+
     </ScrollView>
   );
 }
@@ -135,4 +147,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "bold", marginVertical: 10 },
   chart: {borderRadius:16}, 
   picker: {marginVertical: 10, backgroundColor: "#f5f5f5", borderRadius: 8},
+  title_logo: { fontSize: 28, fontWeight: "bold", marginBottom: 10 },
+  titleGreen: { color: "#6ab04c" },
 }); 

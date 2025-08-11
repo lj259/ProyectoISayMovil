@@ -12,6 +12,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import PerfilScreen from './src/screens/PerfilScreen'; // Placeholder for Perfil screen
 import EditarPerfilScreen from './src/screens/EditarPerfil'; // 
 import ConfiguracionScreen from './src/screens/Configuracion'; // Pl
+import PresupuestoScreen from './src/screens/PresupuestosScreen';
+import PagosFijosScreen from './src/screens/PagosfijosScreen';
 
 
 const Tab = createBottomTabNavigator();
@@ -25,9 +27,9 @@ function TabNavigator() {
           let iconName;
           if (route.name === 'Dashboard') iconName = 'stats-chart';
           else if (route.name === 'Transacciones') iconName = 'list';
+          else if (route.name === 'Presupuesto') iconName = 'cash';
+          else if (route.name === 'Pagos Fijos') iconName = 'repeat';
           else if (route.name === 'Perfil') iconName = 'person';
-          else if (route.name === 'Ajustes') iconName = 'settings';
-          else if (route.name === 'Configuracion') iconName = 'cog';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2ecc71',
@@ -36,9 +38,9 @@ function TabNavigator() {
     >
       <Tab.Screen name="Dashboard" component={Dashboard} />
       <Tab.Screen name="Transacciones" component={Transacciones} />
+      <Tab.Screen name="Presupuesto" component={PresupuestoScreen} /> 
+      <Tab.Screen name="Pagos Fijos" component={PagosFijosScreen} /> 
       <Tab.Screen name="Perfil" component={PerfilScreen} /> 
-      <Tab.Screen name="Ajustes" component={EditarPerfilScreen} />
-      <Tab.Screen name="Configuracion" component={ConfiguracionScreen} />
     </Tab.Navigator>
   );
 }
@@ -52,6 +54,8 @@ export default function App() {
         <Stack.Screen name="Registro" component={RegistroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={TabNavigator} />
+        <Stack.Screen name="Ajustes" component={EditarPerfilScreen} />
+        <Stack.Screen name="Configuracion" component={ConfiguracionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

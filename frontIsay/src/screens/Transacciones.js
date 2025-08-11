@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getTransacciones, crearTransaccion as crearTransaccionAPI, editarTransaccion as editarTransaccionAPI, eliminarTransaccion as  eliminarTransaccionAPI} from "../utils/api";
@@ -58,7 +60,7 @@ export default function Transacciones() {
   };
 
   const crearTransaccion = async () => {
-    if (!monto || !tipo || !descripcion || !fecha) {
+    if (!monto || !categoria || !descripcion || !fecha) {
       Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
@@ -82,7 +84,7 @@ export default function Transacciones() {
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setTipo(item.tipo.toLowerCase());
+    setCategoria(item.tipo.toLowerCase());
     setDescripcion(item.descripcion);
     setFecha(item.fecha);
     setEditDate(new Date(item.fecha));
@@ -132,7 +134,7 @@ const eliminarTransaccion = async () => {
 
   const limpiarCampos = () => {
     setMonto("");
-    setTipo("");
+    setCategoria("");
     setDescripcion("");
     setFecha("");
     setDate(new Date());
@@ -165,41 +167,44 @@ const eliminarTransaccion = async () => {
         : "#fff3cd";
 
     return (
-      <View style={[styles.card, { backgroundColor: cardBackground }]}>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Monto:</Text>
-          <Text style={styles.cardValue}>${item.monto}</Text>
+        <View style={[styles.card, { backgroundColor: cardBackground }]}>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Monto:</Text>
+            <Text style={styles.cardValue}>${item.monto}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Tipo:</Text>
+            <Text style={styles.cardValue}>
+              {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
+            </Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Descripción:</Text>
+            <Text style={styles.cardValue}>{item.descripcion}</Text>
+          </View>
+          <View style={styles.cardRow}>
+            <Text style={styles.cardLabel}>Fecha:</Text>
+            <Text style={styles.cardValue}>{item.fecha}</Text>
+          </View>
+          <View style={styles.cardActions}>
+            <TouchableOpacity onPress={() => abrirModalEditar(item)}>
+              <Text style={styles.editText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}>
+              <Text style={styles.deleteText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Tipo:</Text>
-          <Text style={styles.cardValue}>
-            {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
-          </Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Descripción:</Text>
-          <Text style={styles.cardValue}>{item.descripcion}</Text>
-        </View>
-        <View style={styles.cardRow}>
-          <Text style={styles.cardLabel}>Fecha:</Text>
-          <Text style={styles.cardValue}>{item.fecha}</Text>
-        </View>
-        <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => abrirModalEditar(item)}>
-            <Text style={styles.editText}>✏️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}>
-            <Text style={styles.deleteText}>🗑️</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Registro de Transacciones</Text>
-
+    <SafeAreaView style={styles.container}>
+                {/* Header */}
+        <Text style={styles.title_logo}>
+          <Text style={styles.titleGreen}>Lana</Text> App
+        </Text>
+        <Text style={styles.title}>Registro de Transacciones</Text>
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
       ) : (
@@ -239,7 +244,7 @@ const eliminarTransaccion = async () => {
                   styles.typeButton,
                   categoria === "ingreso" && styles.typeButtonSelectedIngreso,
                 ]}
-                onPress={() => setTipo("ingreso")}
+                onPress={() => setCategoria("ingreso")}
               >
                 <Text
                   style={[
@@ -255,7 +260,7 @@ const eliminarTransaccion = async () => {
                   styles.typeButton,
                   categoria === "egreso" && styles.typeButtonSelectedEgreso,
                 ]}
-                onPress={() => setTipo("egreso")}
+                onPress={() => setCategoria("egreso")}
               >
                 <Text
                   style={[
@@ -274,7 +279,7 @@ const eliminarTransaccion = async () => {
                     borderColor: "#ffc107",
                   },
                 ]}
-                onPress={() => setTipo("ahorro")}
+                onPress={() => setCategoria("ahorro")}
               >
                 <Text
                   style={[
@@ -343,7 +348,7 @@ const eliminarTransaccion = async () => {
                   styles.typeButton,
                   categoria === "ingreso" && styles.typeButtonSelectedIngreso,
                 ]}
-                onPress={() => setTipo("ingreso")}
+                onPress={() => setCategoria("ingreso")}
               >
                 <Text
                   style={[
@@ -359,7 +364,7 @@ const eliminarTransaccion = async () => {
                   styles.typeButton,
                   categoria === "egreso" && styles.typeButtonSelectedEgreso,
                 ]}
-                onPress={() => setTipo("egreso")}
+                onPress={() => setCategoria("egreso")}
               >
                 <Text
                   style={[
@@ -378,7 +383,7 @@ const eliminarTransaccion = async () => {
                     borderColor: "#ffc107",
                   },
                 ]}
-                onPress={() => setTipo("ahorro")}
+                onPress={() => setCategoria("ahorro")}
               >
                 <Text
                   style={[
@@ -446,7 +451,8 @@ const eliminarTransaccion = async () => {
           </View>
         </View>
       </Modal>
-    </View>
+
+    </SafeAreaView>
   );
 }
 
@@ -570,4 +576,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     marginTop: 10,
   },
+  title_logo: { fontSize: 28, fontWeight: "bold", marginBottom: 10 },
+  titleGreen: { color: "#6ab04c" },
 });

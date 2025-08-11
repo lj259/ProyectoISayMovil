@@ -1,4 +1,3 @@
-# routes.py
 import uuid
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from datetime import datetime, date, timedelta
@@ -7,11 +6,13 @@ from collections import defaultdict
 from database import get_db
 from models import Notificacion, PasswordReset, Usuario, Presupuesto, Transaccion, PagoFijo, Categoria
 from schemas import (
-    NotificacionRead, PasswordResetRequest, UsuarioBase, UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin, 
-    PresupuestoBase, PresupuestoCreate, Presupuesto as SchemaPresupuesto, 
-    TransaccionBase, TransaccionCreate, Transaccion as SchemaTransaccion, 
-    PagoFijoBase, PagoFijoCreate, PagoFijo as SchemaPagoFijo, 
-    CategoriaTotal, TendenciaMensual, ResumenFinanciero, UsuarioRead
+    NotificacionRead, PasswordResetRequest, PasswordRecoveryRequest, UsuarioBase, UsuarioCreate, UsuarioRead as SchemaUsuario, UsuarioLogin, 
+    PresupuestoBase, PresupuestoCreate, PresupuestoRead as SchemaPresupuesto, 
+    TransaccionBase, TransaccionCreate, TransaccionRead as SchemaTransaccion, 
+    PagoFijoBase, PagoFijoCreate, PagoFijoRead as SchemaPagoFijo, PagoFijoOut,
+    CategoriaTotal, TendenciaMensual, ResumenFinanciero, UsuarioRead,
+    NotificacionCreate, NotificacionRead
+    
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -221,7 +222,11 @@ def eliminar_transaccion(transaccion_id: int, db: Session = Depends(get_db)):
     return {"mensaje": "Transacción eliminada correctamente"}
 
 # Endpoints de Pagos Fijos
-@router.get("/pagos-fijos", response_model=List[SchemaPagoFijo], tags=["Pagos Fijos"])
+@router.get("/categorias")
+def get_categories(db: Session = Depends(get_db)):
+    return db.query(Categoria).all()
+
+@router.get("/pagos-fijos", response_model=List[PagoFijoOut], tags=["Pagos Fijos"])
 def listar_pagos_fijos(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
     query = db.query(PagoFijo)
     if usuario_id:
@@ -336,16 +341,23 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
     
     egresos = db.query(Transaccion).filter(
         Transaccion.usuario_id == usuario_id,
-        Transaccion.tipo == "gasto"
+        Transaccion.tipo == "egreso"
+    ).all()
+
+    ahorros = db.query(Transaccion).filter(
+        Transaccion.usuario_id == usuario_id,
+        Transaccion.tipo == "ahorro"
     ).all()
     
     total_ingresos = sum(t.monto for t in ingresos)
     total_egresos = sum(t.monto for t in egresos)
+    total_ahorros = sum(t.monto for t in ahorros)
     balance = total_ingresos - total_egresos
 
     return {
         "total_ingresos": total_ingresos,
         "total_egresos": total_egresos,
+        "total_ahorros": total_ahorros,
         "balance": balance
     }
     

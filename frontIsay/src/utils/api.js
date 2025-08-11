@@ -66,4 +66,21 @@ export const eliminarTransaccion = async (id) => {
   const response = await api.delete(`/transacciones/${id}`);
   return response.data;
 };
+
+export const fetchCategorias = async () => {
+  const response = await api.get('/categorias');
+  return response.data;
+};
+
+// Pagos Fijos
+export const crearPagoFijo = async (data) => {
+  try {
+    const response = await api.post('/pagos-fijos', data);
+    console.log("Pago fijo creado:", response.data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.detail || 'Error al crear pago fijo';
+  }
+};
+
 export default api;

@@ -55,8 +55,9 @@ class Transaccion(Base):
 class PagoFijo(Base):
     __tablename__ = "pagos_fijos"
     id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     descripcion    = Column(String(255), nullable=False)
+    usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     monto          = Column(Float, nullable=False)
     fecha          = Column(Date, nullable=False)
     fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)

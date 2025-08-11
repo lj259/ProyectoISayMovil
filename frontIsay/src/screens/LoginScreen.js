@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { login } from '../utils/api'; 
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function LoginScreen() {
 
@@ -10,15 +11,18 @@ export default function LoginScreen() {
   const navigation = useNavigation();
 
   const handleLogin = async () => {
-    try {
-      console.log(`Iniciando sesión con correo: ${correo}`,' y contraseña: ', contraseña_hash);
-      const res = await login(correo, contraseña_hash);
-      Alert.alert('Bienvenido', `${res.nombre_usuario}`);
-      navigation.navigate('Home'); 
-    } catch (err) {
-      Alert.alert('Error', err.response?.data?.detail || 'Error al iniciar sesión');
-    }
-  };
+  try {
+    console.log(`Iniciando sesión con correo: ${correo}`,' y contraseña: ', contraseña_hash);
+    const data = await login(correo, contraseña_hash);
+    console.log("Datos de usuario:", data);
+    await AsyncStorage.setItem('usuario_id', data.usuario_id.toString());
+    await AsyncStorage.setItem('usuario_nombre', data.usuario);
+    Alert.alert('Bienvenido', `${data.usuario}`);
+      navigation.navigate('Home');
+  } catch (err) {
+    console.error("Error al iniciar sesión:", err);
+  }
+};
 
   return (
     <View style={styles.container}>
