@@ -6,7 +6,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://192.168.100.44:8000";
+const API_URL = "http://10.16.37.126:8000";
 
 const ajustarFecha = (date) => {
   const y = date.getFullYear();
