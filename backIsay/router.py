@@ -7,10 +7,10 @@ from collections import defaultdict
 from database import get_db
 from models import Notificacion, PasswordReset, Usuario, Presupuesto, Transaccion, PagoFijo, Categoria
 from schemas import (
-    NotificacionRead, PasswordResetRequest, UsuarioBase, UsuarioCreate, UsuarioLogin, 
-    PresupuestoBase, PresupuestoCreate, 
-    TransaccionBase, TransaccionCreate,
-    PagoFijoBase, PagoFijoCreate,
+    NotificacionRead, PasswordResetRequest, UsuarioBase, UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin, 
+    PresupuestoBase, PresupuestoCreate, Presupuesto as SchemaPresupuesto, 
+    TransaccionBase, TransaccionCreate, Transaccion as SchemaTransaccion, 
+    PagoFijoBase, PagoFijoCreate, PagoFijo as SchemaPagoFijo, 
     CategoriaTotal, TendenciaMensual, ResumenFinanciero, UsuarioRead
 )
 from passlib.context import CryptContext
