@@ -1,16 +1,17 @@
 # routes.py
-from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime, date
+import uuid
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from datetime import datetime, date, timedelta
 from typing import List, Optional
 from collections import defaultdict
 from database import get_db
-from models import Usuario, Presupuesto, Transaccion, PagoFijo, Categoria 
+from models import Notificacion, PasswordReset, Usuario, Presupuesto, Transaccion, PagoFijo, Categoria
 from schemas import (
-    UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin, 
+    NotificacionRead, PasswordResetRequest, UsuarioBase, UsuarioCreate, Usuario as SchemaUsuario, UsuarioLogin, 
     PresupuestoBase, PresupuestoCreate, Presupuesto as SchemaPresupuesto, 
     TransaccionBase, TransaccionCreate, Transaccion as SchemaTransaccion, 
     PagoFijoBase, PagoFijoCreate, PagoFijo as SchemaPagoFijo, 
-    CategoriaTotal, TendenciaMensual, ResumenFinanciero
+    CategoriaTotal, TendenciaMensual, ResumenFinanciero, UsuarioRead
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -50,10 +51,24 @@ def register(user: UsuarioCreate, db: Session = Depends(get_db)):
     db.refresh(nuevo_usuario)
     return nuevo_usuario
 
+@router.put("/usuarios/{usuario_id}", response_model=UsuarioRead, tags=["Usuarios"])
+def actualizar_usuario(usuario_id: int, datos: UsuarioBase, db: Session = Depends(get_db)):
+    u = db.query(Usuario).get(usuario_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    u.nombre_usuario = datos.nombre_usuario
+    u.correo = datos.correo
+    u.telefono = datos.telefono
+
+    db.commit()
+    db.refresh(u)
+    return u
+
 @router.post("/login", tags=["Usuarios"])
 def login(user: UsuarioLogin, db: Session = Depends(get_db)):
     usuario = db.query(Usuario).filter(Usuario.correo == user.correo).first()
-    if not usuario or not pwd_context.verify(user.contraseña, usuario.contraseña):
+    if not usuario or not pwd_context.verify(user.contraseña_hash, usuario.contraseña_hash):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
     return {
@@ -61,6 +76,63 @@ def login(user: UsuarioLogin, db: Session = Depends(get_db)):
         "usuario": usuario.nombre_usuario,
         "usuario_id": usuario.id
     }
+
+@router.get("/usuarios/{usuario_id}", response_model=UsuarioRead, tags=["Usuarios"])
+def obtener_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    u = db.query(Usuario).get(usuario_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return u
+
+
+@router.get("/usuarios", response_model=List[UsuarioRead], tags=["Usuarios"])
+def listar_usuarios(db: Session = Depends(get_db)):
+    return db.query(Usuario).all()
+
+# --- Recuperación de contraseña ---
+# Función simulada de envío de correo electrónico
+def send_recovery_email(email: str, token: str):
+    print(f"[EMAIL] Para {email}: usa este token → {token}")
+
+@router.post("/password-recovery", tags=["Usuarios"])
+def password_recovery(
+    req: PasswordRecoveryRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    u = db.query(Usuario).filter(Usuario.correo == req.correo).first()
+    mensaje = {"mensaje": "Si el correo existe, recibirás instrucciones por email."}
+    if not u:
+        return mensaje
+    token = str(uuid.uuid4())
+    expires = datetime.utcnow() + timedelta(hours=1)
+    pr = PasswordReset(user_id=u.id, token=token, expires_at=expires)
+    db.add(pr); db.commit()
+    background_tasks.add_task(send_recovery_email, u.correo, token)
+    return mensaje
+
+@router.post("/reset-password/{token}", tags=["Usuarios"])
+def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    pr = db.query(PasswordReset).filter(PasswordReset.token == token).first()
+    if not pr or pr.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    u = db.get(Usuario, pr.user_id)
+    u.contraseña = req.nueva_contraseña
+    db.delete(pr)
+    db.commit()
+    return {"mensaje": "Contraseña reestablecida correctamente"}
+
+@router.post("/reset-password/{token}", tags=["Usuarios"])
+def reset_password(token: str, req: PasswordResetRequest, db: Session = Depends(get_db)):
+    pr = db.query(PasswordReset).filter(PasswordReset.token == token).first()
+    if not pr or pr.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+    u = db.get(Usuario, pr.user_id)
+    u.contraseña_hash = pwd_context.hash(req.nueva_contraseña)
+    db.delete(pr)
+    db.commit()
+    return {"mensaje": "Contraseña reestablecida correctamente"}
+
 
 # Endpoints de Presupuestos
 @router.get("/presupuestos", response_model=List[SchemaPresupuesto], tags=["Presupuestos"])
@@ -276,3 +348,44 @@ def resumen_financiero(usuario_id: int = 1, db: Session = Depends(get_db)):
         "total_egresos": total_egresos,
         "balance": balance
     }
+    
+    # --- Rutas Notificaciones ---
+@router.get("/notificaciones", response_model=List[NotificacionRead], tags=["Notificaciones"])
+def listar_notificaciones(usuario_id: Optional[int] = None, db: Session = Depends(get_db)):
+    q = db.query(Notificacion)
+    if usuario_id is not None:
+        q = q.filter(Notificacion.usuario_id == usuario_id)
+    return q.all()
+
+@router.get("/notificaciones/{notif_id}", response_model=NotificacionRead, tags=["Notificaciones"])
+def obtener_notificacion(notif_id: int, db: Session = Depends(get_db)):
+    n = db.query(Notificacion).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    return n
+
+@router.post("/notificaciones", response_model=NotificacionRead, status_code=201, tags=["Notificaciones"])
+def crear_notificacion(payload: NotificacionCreate, db: Session = Depends(get_db)):
+    if not db.query(Usuario).get(payload.usuario_id):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    n = Notificacion(**payload.dict())
+    db.add(n); db.commit(); db.refresh(n)
+    return n
+
+@router.put("/notificaciones/{notif_id}", response_model=NotificacionRead, tags=["Notificaciones"])
+def actualizar_notificacion(notif_id: int, datos: NotificacionCreate, db: Session = Depends(get_db)):
+    n = db.query(Notificacion).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    for k, v in datos.dict().items():
+        setattr(n, k, v)
+    db.commit(); db.refresh(n)
+    return n
+
+@router.delete("/notificaciones/{notif_id}", status_code=204, tags=["Notificaciones"])
+def eliminar_notificacion(notif_id: int, db: Session = Depends(get_db)):
+    n = db.query(Notificacion).get(notif_id)
+    if not n:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    db.delete(n); db.commit()
+

@@ -6,7 +6,7 @@ from database import Base
 
 # --- Modelos SQLAlchemy ---
 
-class UsuarioDB(Base):
+class Usuario(Base):
     __tablename__ = "usuarios"
     id                  = Column(Integer, primary_key=True, index=True)
     nombre_usuario      = Column(String(50), unique=True, nullable=False)
@@ -18,16 +18,16 @@ class UsuarioDB(Base):
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(),
                                 onupdate=func.now(), nullable=False)
     
-class CategoriaDB(Base):
+class Categoria(Base):
     __tablename__ = "categorias"
     id                = Column(Integer, primary_key=True, index=True)
     nombre            = Column(String(50), nullable=False)
     tipo              = Column(Enum('ingreso', 'egreso'), nullable=False)
     usuario_id        = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     es_predeterminada = Column(Boolean, default=False)
-    transacciones     = relationship("TransaccionDB", back_populates="categoria")
+    transacciones     = relationship("Transaccion", back_populates="categoria")
 
-class PresupuestoDB(Base):
+class Presupuesto(Base):
     __tablename__ = "presupuestos"
     id                  = Column(Integer, primary_key=True, index=True)
     usuario_id          = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
@@ -38,13 +38,13 @@ class PresupuestoDB(Base):
     fecha_creacion      = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
-class TransaccionDB(Base):
+class Transaccion(Base):
     __tablename__ = "transacciones"
     id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
     usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     monto          = Column(Float, nullable=False)
     categoria_id   = Column(Integer, ForeignKey("categorias.id"), nullable=False)
-    categoria      = relationship("CategoriaDB", back_populates="transacciones")
+    categoria      = relationship("Categoria", back_populates="transacciones")
     tipo           = Column(Enum('ingreso','egreso', 'ahorro'), nullable=False)
     descripcion    = Column(String(255), nullable=True)
     fecha          = Column(Date, nullable=False)
@@ -52,7 +52,7 @@ class TransaccionDB(Base):
     id_recurrente  = Column(Integer, nullable=True)
     fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
-class PagoFijoDB(Base):
+class PagoFijo(Base):
     __tablename__ = "pagos_fijos"
     id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
     usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
@@ -61,14 +61,14 @@ class PagoFijoDB(Base):
     fecha          = Column(Date, nullable=False)
     fecha_creacion = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
-class PasswordResetDB(Base):
+class PasswordReset(Base):
     __tablename__ = "password_resets"
     id         = Column(Integer, primary_key=True, index=True)
     user_id    = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     token      = Column(String(100), unique=True, index=True, nullable=False)
     expires_at = Column(TIMESTAMP, nullable=False)
 
-class NotificacionDB(Base):
+class Notificacion(Base):
     __tablename__ = "notificaciones"
     id               = Column(Integer, primary_key=True, index=True)
     usuario_id       = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
