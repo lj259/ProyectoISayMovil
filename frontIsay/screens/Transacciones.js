@@ -9,10 +9,12 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  ScrollView
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://10.16.32.134:8000";
+const API_URL = "http://192.168.100.44:8000";
 
 const ajustarFecha = (date) => {
   const year = date.getFullYear();
@@ -24,6 +26,8 @@ const ajustarFecha = (date) => {
 export default function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [categorias, setCategorias] = useState([]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
@@ -43,7 +47,18 @@ export default function Transacciones() {
 
   useEffect(() => {
     fetchTransacciones();
+    fetchCategorias();
   }, []);
+
+  const fetchCategorias = async () => {
+    try {
+      const res = await fetch(`${API_URL}/categorias`);
+      const data = await res.json();
+      setCategorias(data);
+    } catch (error) {
+      Alert.alert("Error", "No se pudieron cargar las categorías");
+    }
+  };
 
   const fetchTransacciones = async () => {
     try {
@@ -52,7 +67,6 @@ export default function Transacciones() {
       const data = await res.json();
       setTransacciones(data);
     } catch (error) {
-      console.log("Error cargando transacciones", error);
       Alert.alert("Error", "No se pudieron cargar las transacciones");
     } finally {
       setLoading(false);
@@ -83,14 +97,14 @@ export default function Transacciones() {
       limpiarCampos();
       fetchTransacciones();
     } catch (error) {
-      console.log("Error creando transacción", error);
+      Alert.alert("Error", "Error creando transacción");
     }
   };
 
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
-    setCategoria(item.tipo.toLowerCase());
+    setCategoria(item.categoria); 
     setDescripcion(item.descripcion);
     setFecha(item.fecha);
     setEditDate(new Date(item.fecha));
@@ -120,7 +134,7 @@ export default function Transacciones() {
       limpiarCampos();
       fetchTransacciones();
     } catch (error) {
-      console.log("Error editando transacción", error);
+      Alert.alert("Error", "Error editando transacción");
     }
   };
 
@@ -140,7 +154,7 @@ export default function Transacciones() {
       setModalEliminarVisible(false);
       fetchTransacciones();
     } catch (error) {
-      console.log("Error eliminando transacción", error);
+      Alert.alert("Error", "Error eliminando transacción");
     }
   };
 
@@ -246,60 +260,17 @@ export default function Transacciones() {
               value={monto}
               onChangeText={setMonto}
             />
-            <Text style={styles.label}>Tipo</Text>
-            <View style={styles.typeSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "ingreso" && styles.typeButtonSelectedIngreso,
-                ]}
-                onPress={() => setCategoria("ingreso")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "ingreso" && styles.typeButtonTextSelected,
-                  ]}
-                >
-                  Ingreso
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "egreso" && styles.typeButtonSelectedEgreso,
-                ]}
-                onPress={() => setCategoria("egreso")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "egreso" && styles.typeButtonTextSelected,
-                  ]}
-                >
-                  Egreso
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "ahorro" && {
-                    backgroundColor: "#ffc107",
-                    borderColor: "#ffc107",
-                  },
-                ]}
-                onPress={() => setCategoria("ahorro")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "ahorro" && { color: "#fff" },
-                  ]}
-                >
-                  Ahorro
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.label}>Categoría</Text>
+            <Picker
+            selectedValue={categoria}
+            onValueChange={setCategoria}
+            style={{ marginBottom: 10, color: '#000' }} 
+            dropdownIconColor={'#000'}
+            >
+            {categorias.map((c) => (
+            <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+            ))}
+            </Picker>
             <Text style={styles.label}>Descripción</Text>
             <TextInput
               style={styles.input}
@@ -350,60 +321,17 @@ export default function Transacciones() {
               value={monto}
               onChangeText={setMonto}
             />
-            <Text style={styles.label}>Tipo</Text>
-            <View style={styles.typeSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "ingreso" && styles.typeButtonSelectedIngreso,
-                ]}
-                onPress={() => setCategoria("ingreso")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "ingreso" && styles.typeButtonTextSelected,
-                  ]}
-                >
-                  Ingreso
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "egreso" && styles.typeButtonSelectedEgreso,
-                ]}
-                onPress={() => setCategoria("egreso")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "egreso" && styles.typeButtonTextSelected,
-                  ]}
-                >
-                  Egreso
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  categoria === "ahorro" && {
-                    backgroundColor: "#ffc107",
-                    borderColor: "#ffc107",
-                  },
-                ]}
-                onPress={() => setCategoria("ahorro")}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    categoria === "ahorro" && { color: "#fff" },
-                  ]}
-                >
-                  Ahorro
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.label}>Categoría</Text>
+            <Picker
+            selectedValue={categoria}
+            onValueChange={setCategoria}
+            style={{ marginBottom: 10, color: '#000' }}
+            dropdownIconColor={'#000'}
+            >
+            {categorias.map((c) => (
+            <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+             ))}
+            </Picker>
             <Text style={styles.label}>Descripción</Text>
             <TextInput
               style={styles.input}
@@ -468,7 +396,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   title: { fontSize: 18, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
 
-  // Botón flotante
   fab: {
     position: "absolute",
     bottom: 20,
@@ -483,7 +410,6 @@ const styles = StyleSheet.create({
   },
   fabText: { color: "#fff", fontSize: 24, fontWeight: "bold" },
 
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -515,30 +441,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
   },
-  typeSelector: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  typeButton: {
-    flex: 1,
-    padding: 12,
-    marginHorizontal: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    alignItems: "center",
-  },
-  typeButtonSelectedIngreso: {
-    backgroundColor: "#28a745",
-    borderColor: "#28a745",
-  },
-  typeButtonSelectedEgreso: {
-    backgroundColor: "#dc3545",
-    borderColor: "#dc3545",
-  },
-  typeButtonText: { color: "#000", fontWeight: "600" },
-  typeButtonTextSelected: { color: "#fff" },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -556,7 +458,6 @@ const styles = StyleSheet.create({
   editText: { marginRight: 15, fontSize: 18 },
   deleteText: { fontSize: 18 },
 
-  // Tarjetas
   card: {
     borderRadius: 10,
     padding: 15,
