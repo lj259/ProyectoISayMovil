@@ -9,12 +9,10 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  ScrollView
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { getTransacciones, crearTransaccion as crearTransaccionAPI, editarTransaccion as editarTransaccionAPI, eliminarTransaccion as  eliminarTransaccionAPI} from "../utils/api";
 
-// Función para formatear fecha local y evitar que se sume un día
 const ajustarFecha = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -26,22 +24,19 @@ export default function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para modal Crear
   const [modalVisible, setModalVisible] = useState(false);
   const [monto, setMonto] = useState("");
-  const [tipo, setTipo] = useState(""); // ingreso, egreso o ahorro
+  const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [fecha, setFecha] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
-  // Estados para modal Editar
   const [modalEditarVisible, setModalEditarVisible] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editShowDatePicker, setEditShowDatePicker] = useState(false);
   const [editDate, setEditDate] = useState(new Date());
 
-  // Estados para modal Eliminar
   const [modalEliminarVisible, setModalEliminarVisible] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
@@ -49,7 +44,6 @@ export default function Transacciones() {
     fetchTransacciones();
   }, []);
 
-  // Obtener transacciones
   const fetchTransacciones = async () => {
     try {
       setLoading(true);
@@ -63,7 +57,6 @@ export default function Transacciones() {
     }
   };
 
-  // Crear transacción
   const crearTransaccion = async () => {
     if (!monto || !tipo || !descripcion || !fecha) {
       Alert.alert("Error", "Todos los campos son obligatorios");
@@ -73,7 +66,7 @@ export default function Transacciones() {
     try {
       const res = await crearTransaccionAPI({
         monto: parseFloat(monto),
-        tipo,
+        categoria,
         descripcion,
         fecha
       });
@@ -86,7 +79,6 @@ export default function Transacciones() {
     }
   };
 
-  // Editar transacción
   const abrirModalEditar = (item) => {
     setEditId(item.id);
     setMonto(String(item.monto));
@@ -98,7 +90,7 @@ export default function Transacciones() {
   };
 
 const editarTransaccion = async () => {
-  if (!monto || !tipo || !descripcion || !fecha) {
+  if (!monto || !categoria || !descripcion || !fecha) {
     Alert.alert("Error", "Todos los campos son obligatorios");
     return;
   }
@@ -106,7 +98,7 @@ const editarTransaccion = async () => {
   try {
     await editarTransaccionAPI(editId, {
       monto: parseFloat(monto),
-      tipo,
+      categoria,
       descripcion,
       fecha
     });
@@ -121,7 +113,6 @@ const editarTransaccion = async () => {
 };
 
 
-  // Eliminar transacción
   const abrirModalEliminar = (id) => {
     setDeleteId(id);
     setModalEliminarVisible(true);
@@ -139,7 +130,6 @@ const eliminarTransaccion = async () => {
 };
 
 
-  // Limpiar campos
   const limpiarCampos = () => {
     setMonto("");
     setTipo("");
@@ -149,35 +139,6 @@ const eliminarTransaccion = async () => {
     setEditDate(new Date());
   };
 
-  // Render de cada transacción en tabla
-  const renderTableHeader = () => (
-    <View style={styles.tableRowHeader}>
-      <Text style={[styles.tableCell, styles.headerCell]}>Monto</Text>
-      <Text style={[styles.tableCell, styles.headerCell]}>Tipo</Text>
-      <Text style={[styles.tableCell, styles.headerCell]}>Descripción</Text>
-      <Text style={[styles.tableCell, styles.headerCell]}>Fecha</Text>
-      <Text style={[styles.tableCell, styles.headerCell]}>Acciones</Text>
-    </View>
-  );
-
-  const renderTableRow = ({ item }) => (
-    <View style={styles.tableRow}>
-      <Text style={styles.tableCell}>{item.monto}</Text>
-      <Text style={styles.tableCell}>{item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}</Text>
-      <Text style={styles.tableCell}>{item.descripcion}</Text>
-      <Text style={styles.tableCell}>{item.fecha}</Text>
-      <View style={[styles.tableCell, styles.actionCell]}>
-        <TouchableOpacity onPress={() => abrirModalEditar(item)}>
-          <Text style={styles.editText}>✏️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}>
-          <Text style={styles.deleteText}>🗑️</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  // DatePicker para crear
   const onChangeDate = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -186,13 +147,53 @@ const eliminarTransaccion = async () => {
     }
   };
 
-  // DatePicker para editar
   const onChangeEditDate = (event, selectedDate) => {
     setEditShowDatePicker(false);
     if (selectedDate) {
       setEditDate(selectedDate);
       setFecha(ajustarFecha(selectedDate));
     }
+  };
+
+  const renderCardItem = ({ item }) => {
+    const tipo = item.tipo.toLowerCase();
+    const cardBackground =
+      tipo === "ingreso"
+        ? "#d4edda"
+        : tipo === "egreso"
+        ? "#f8d7da"
+        : "#fff3cd";
+
+    return (
+      <View style={[styles.card, { backgroundColor: cardBackground }]}>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Monto:</Text>
+          <Text style={styles.cardValue}>${item.monto}</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Tipo:</Text>
+          <Text style={styles.cardValue}>
+            {item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}
+          </Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Descripción:</Text>
+          <Text style={styles.cardValue}>{item.descripcion}</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Text style={styles.cardLabel}>Fecha:</Text>
+          <Text style={styles.cardValue}>{item.fecha}</Text>
+        </View>
+        <View style={styles.cardActions}>
+          <TouchableOpacity onPress={() => abrirModalEditar(item)}>
+            <Text style={styles.editText}>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}>
+            <Text style={styles.deleteText}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -202,19 +203,14 @@ const eliminarTransaccion = async () => {
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
       ) : (
-        <ScrollView horizontal>
-          <View style={styles.table}>
-            {renderTableHeader()}
-            <FlatList
-              data={transacciones}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderTableRow}
-            />
-          </View>
-        </ScrollView>
+        <FlatList
+          data={transacciones}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderCardItem}
+          contentContainerStyle={{ paddingBottom: 80 }}
+        />
       )}
 
-      {/* Botón flotante agregar */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => setModalVisible(true)}
@@ -241,42 +237,51 @@ const eliminarTransaccion = async () => {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "ingreso" && styles.typeButtonSelectedIngreso
+                  categoria === "ingreso" && styles.typeButtonSelectedIngreso,
                 ]}
                 onPress={() => setTipo("ingreso")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "ingreso" && styles.typeButtonTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "ingreso" && styles.typeButtonTextSelected,
+                  ]}
+                >
                   Ingreso
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "egreso" && styles.typeButtonSelectedEgreso
+                  categoria === "egreso" && styles.typeButtonSelectedEgreso,
                 ]}
                 onPress={() => setTipo("egreso")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "egreso" && styles.typeButtonTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "egreso" && styles.typeButtonTextSelected,
+                  ]}
+                >
                   Egreso
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                  categoria === "ahorro" && {
+                    backgroundColor: "#ffc107",
+                    borderColor: "#ffc107",
+                  },
                 ]}
                 onPress={() => setTipo("ahorro")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "ahorro" && { color: "#fff" }
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "ahorro" && { color: "#fff" },
+                  ]}
+                >
                   Ahorro
                 </Text>
               </TouchableOpacity>
@@ -336,42 +341,51 @@ const eliminarTransaccion = async () => {
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "ingreso" && styles.typeButtonSelectedIngreso
+                  categoria === "ingreso" && styles.typeButtonSelectedIngreso,
                 ]}
                 onPress={() => setTipo("ingreso")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "ingreso" && styles.typeButtonTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "ingreso" && styles.typeButtonTextSelected,
+                  ]}
+                >
                   Ingreso
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "egreso" && styles.typeButtonSelectedEgreso
+                  categoria === "egreso" && styles.typeButtonSelectedEgreso,
                 ]}
                 onPress={() => setTipo("egreso")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "egreso" && styles.typeButtonTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "egreso" && styles.typeButtonTextSelected,
+                  ]}
+                >
                   Egreso
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.typeButton,
-                  tipo === "ahorro" && { backgroundColor: "#ffc107", borderColor: "#ffc107" }
+                  categoria === "ahorro" && {
+                    backgroundColor: "#ffc107",
+                    borderColor: "#ffc107",
+                  },
                 ]}
                 onPress={() => setTipo("ahorro")}
               >
-                <Text style={[
-                  styles.typeButtonText,
-                  tipo === "ahorro" && { color: "#fff" }
-                ]}>
+                <Text
+                  style={[
+                    styles.typeButtonText,
+                    categoria === "ahorro" && { color: "#fff" },
+                  ]}
+                >
                   Ahorro
                 </Text>
               </TouchableOpacity>
@@ -439,40 +453,6 @@ const eliminarTransaccion = async () => {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   title: { fontSize: 18, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
-
-  // Tabla
-  table: { minWidth: 600 },
-  tableRowHeader: {
-    flexDirection: "row",
-    backgroundColor: "#007bff",
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 2,
-  },
-  tableRow: {
-    flexDirection: "row",
-    backgroundColor: "#f9f9f9",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    alignItems: "center",
-  },
-  tableCell: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 14,
-    paddingHorizontal: 4,
-  },
-  headerCell: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  actionCell: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
 
   // Botón flotante
   fab: {
@@ -559,6 +539,35 @@ const styles = StyleSheet.create({
   addButtonText: { color: "#fff", fontWeight: "bold" },
   cancelButton: { paddingVertical: 10, paddingHorizontal: 20 },
   cancelButtonText: { color: "#007bff", fontWeight: "bold" },
-  editText: { marginRight: 15, fontSize: 18 }, 
-  deleteText: {fontSize: 18}, 
+  editText: { marginRight: 15, fontSize: 18 },
+  deleteText: { fontSize: 18 },
+
+  // Tarjetas
+  card: {
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  cardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  cardLabel: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+  cardValue: {
+    color: "#212529",
+  },
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 10,
+  },
 });
