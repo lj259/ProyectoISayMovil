@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Modal,
-  TextInput, Alert, ActivityIndicator
+  TextInput, Alert, ActivityIndicator, ScrollView
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
@@ -177,8 +177,8 @@ export default function Transacciones() {
         <View style={styles.cardRow}><Text style={styles.cardLabel}>Descripción:</Text><Text style={styles.cardValue}>{item.descripcion}</Text></View>
         <View style={styles.cardRow}><Text style={styles.cardLabel}>Fecha:</Text><Text style={styles.cardValue}>{item.fecha}</Text></View>
         <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => abrirModalEditar(item)}><Text style={styles.editText}>✏️</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}><Text style={styles.deleteText}>🗑️</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => abrirModalEditar(item)}><Text style={styles.editText}>✏</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => abrirModalEliminar(item.id)}><Text style={styles.deleteText}>🗑</Text></TouchableOpacity>
         </View>
       </View>
     );
@@ -207,55 +207,57 @@ export default function Transacciones() {
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Nueva Transacción</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 10 }}>
+              <Text style={styles.modalTitle}>Nueva Transacción</Text>
 
-            <Text style={styles.label}>Monto</Text>
-            <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
+              <Text style={styles.label}>Monto</Text>
+              <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
 
-            <Text style={styles.label}>Tipo</Text>
-            <Picker
-              selectedValue={tipo}
-              onValueChange={(v) => { setTipo(v); setCategoria(""); }}
-              style={{ marginBottom: 10 }}
-              itemStyle={{ color: "#000" }}
-              dropdownIconColor="#000"
-            >
-              <Picker.Item label="Selecciona el tipo" value="" color="#888" />
-              <Picker.Item label="Ingreso" value="ingreso" color="#000" />
-              <Picker.Item label="Egreso" value="egreso" color="#000" />
-            </Picker>
+              <Text style={styles.label}>Tipo</Text>
+              <Picker
+                selectedValue={tipo}
+                onValueChange={(v) => { setTipo(v); setCategoria(""); }}
+                style={{ marginBottom: 10 }}
+                itemStyle={{ color: "#000" }}
+                dropdownIconColor="#000"
+              >
+                <Picker.Item label="Selecciona el tipo" value="" color="#888" />
+                <Picker.Item label="Ingreso" value="ingreso" color="#000" />
+                <Picker.Item label="Egreso" value="egreso" color="#000" />
+              </Picker>
 
-            <Text style={styles.label}>Categoría</Text>
-            <Picker
-              selectedValue={categoria}
-              onValueChange={setCategoria}
-              style={{ marginBottom: 10 }}
-              itemStyle={{ color: "#000" }}
-              dropdownIconColor="#000"
-            >
-              <Picker.Item label="Selecciona la categoría" value="" color="#888" />
-              {categorias
-                .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
-                .map((c) => (
-                  <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-                ))}
-            </Picker>
+              <Text style={styles.label}>Categoría</Text>
+              <Picker
+                selectedValue={categoria}
+                onValueChange={setCategoria}
+                style={{ marginBottom: 10 }}
+                itemStyle={{ color: "#000" }}
+                dropdownIconColor="#000"
+              >
+                <Picker.Item label="Selecciona la categoría" value="" color="#888" />
+                {categorias
+                  .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
+                  .map((c) => (
+                    <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+                  ))}
+              </Picker>
 
-            <Text style={styles.label}>Descripción</Text>
-            <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
+              <Text style={styles.label}>Descripción</Text>
+              <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
 
-            <Text style={styles.label}>Fecha</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-              <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} />
-            )}
+              <Text style={styles.label}>Fecha</Text>
+              <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+                <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} />
+              )}
 
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.addButton} onPress={crearTransaccion}><Text style={styles.addButtonText}>Agregar</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
-            </View>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.addButton} onPress={crearTransaccion}><Text style={styles.addButtonText}>Agregar</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -264,55 +266,57 @@ export default function Transacciones() {
       <Modal visible={modalEditarVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Editar Transacción</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 10 }}>
+              <Text style={styles.modalTitle}>Editar Transacción</Text>
 
-            <Text style={styles.label}>Monto</Text>
-            <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
+              <Text style={styles.label}>Monto</Text>
+              <TextInput style={styles.input} placeholder="Monto" keyboardType="numeric" value={monto} onChangeText={setMonto} />
 
-            <Text style={styles.label}>Tipo</Text>
-            <Picker
-              selectedValue={tipo}
-              onValueChange={(v) => { setTipo(v); setCategoria(""); }}
-              style={{ marginBottom: 10 }}
-              itemStyle={{ color: "#000" }}
-              dropdownIconColor="#000"
-            >
-              <Picker.Item label="Selecciona el tipo" value="" color="#888" />
-              <Picker.Item label="Ingreso" value="ingreso" color="#000" />
-              <Picker.Item label="Egreso" value="egreso" color="#000" />
-            </Picker>
+              <Text style={styles.label}>Tipo</Text>
+              <Picker
+                selectedValue={tipo}
+                onValueChange={(v) => { setTipo(v); setCategoria(""); }}
+                style={{ marginBottom: 10 }}
+                itemStyle={{ color: "#000" }}
+                dropdownIconColor="#000"
+              >
+                <Picker.Item label="Selecciona el tipo" value="" color="#888" />
+                <Picker.Item label="Ingreso" value="ingreso" color="#000" />
+                <Picker.Item label="Egreso" value="egreso" color="#000" />
+              </Picker>
 
-            <Text style={styles.label}>Categoría</Text>
-            <Picker
-              selectedValue={categoria}
-              onValueChange={setCategoria}
-              style={{ marginBottom: 10 }}
-              itemStyle={{ color: "#000" }}
-              dropdownIconColor="#000"
-            >
-              <Picker.Item label="Selecciona la categoría" value="" color="#888" />
-              {categorias
-                .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
-                .map((c) => (
-                  <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-                ))}
-            </Picker>
+              <Text style={styles.label}>Categoría</Text>
+              <Picker
+                selectedValue={categoria}
+                onValueChange={setCategoria}
+                style={{ marginBottom: 10 }}
+                itemStyle={{ color: "#000" }}
+                dropdownIconColor="#000"
+              >
+                <Picker.Item label="Selecciona la categoría" value="" color="#888" />
+                {categorias
+                  .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
+                  .map((c) => (
+                    <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+                  ))}
+              </Picker>
 
-            <Text style={styles.label}>Descripción</Text>
-            <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
+              <Text style={styles.label}>Descripción</Text>
+              <TextInput style={styles.input} placeholder="Descripción" value={descripcion} onChangeText={setDescripcion} />
 
-            <Text style={styles.label}>Fecha</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setEditShowDatePicker(true)}>
-              <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
-            </TouchableOpacity>
-            {editShowDatePicker && (
-              <DateTimePicker value={editDate} mode="date" display="default" onChange={onChangeEditDate} />
-            )}
+              <Text style={styles.label}>Fecha</Text>
+              <TouchableOpacity style={styles.input} onPress={() => setEditShowDatePicker(true)}>
+                <Text>{fecha ? fecha : "Selecciona una fecha"}</Text>
+              </TouchableOpacity>
+              {editShowDatePicker && (
+                <DateTimePicker value={editDate} mode="date" display="default" onChange={onChangeEditDate} />
+              )}
 
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.addButton} onPress={editarTransaccion}><Text style={styles.addButtonText}>Guardar</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalEditarVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
-            </View>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.addButton} onPress={editarTransaccion}><Text style={styles.addButtonText}>Guardar</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setModalEditarVisible(false)}><Text style={styles.cancelButtonText}>Cancelar</Text></TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>

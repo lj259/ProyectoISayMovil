@@ -66,10 +66,6 @@ export default function Dashboard() {
           <Text style={styles.egreso}>${resumen.total_egresos.toFixed(2)}</Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.title}>Ahorros</Text>
-          <Text style={styles.ahorro}>${resumen.total_ahorros.toFixed(2)}</Text>
-        </View>
-        <View style={styles.card}>
           <Text style={styles.title}>Balance</Text>
           <Text style={styles.balance}>${resumen.balance.toFixed(2)}</Text>
         </View>
@@ -84,7 +80,6 @@ export default function Dashboard() {
       >
         <Picker.Item label="Gastos" value="egreso" />
         <Picker.Item label="Ingresos" value="ingreso" />
-        <Picker.Item label="Ahorros" value="ahorro" />
       </Picker>
 
       {/* Tendencia (barras) */}
