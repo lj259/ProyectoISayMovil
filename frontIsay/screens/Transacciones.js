@@ -6,7 +6,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 
-const API_URL = "http://10.16.34.94:8000";
+const API_URL = "http://192.168.100.44:8000";
 
 const ajustarFecha = (date) => {
   const y = date.getFullYear();
@@ -166,8 +166,6 @@ export default function Transacciones() {
     }
   };
 
-  const categoriasFiltradas = tipo ? categorias.filter((c) => c.tipo === tipo) : categorias;
-
   const renderCardItem = ({ item }) => {
     const t = (item.tipo || "").toLowerCase();
     const cardBackground = t === "ingreso" ? "#d4edda" : t === "egreso" ? "#f8d7da" : "#fff3cd";
@@ -225,7 +223,6 @@ export default function Transacciones() {
               <Picker.Item label="Selecciona el tipo" value="" color="#888" />
               <Picker.Item label="Ingreso" value="ingreso" color="#000" />
               <Picker.Item label="Egreso" value="egreso" color="#000" />
-              <Picker.Item label="Ahorro" value="ahorro" color="#000" />
             </Picker>
 
             <Text style={styles.label}>Categoría</Text>
@@ -237,9 +234,11 @@ export default function Transacciones() {
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona la categoría" value="" color="#888" />
-              {categoriasFiltradas.map((c) => (
-                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-              ))}
+              {categorias
+                .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
+                .map((c) => (
+                  <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+                ))}
             </Picker>
 
             <Text style={styles.label}>Descripción</Text>
@@ -281,7 +280,6 @@ export default function Transacciones() {
               <Picker.Item label="Selecciona el tipo" value="" color="#888" />
               <Picker.Item label="Ingreso" value="ingreso" color="#000" />
               <Picker.Item label="Egreso" value="egreso" color="#000" />
-              <Picker.Item label="Ahorro" value="ahorro" color="#000" />
             </Picker>
 
             <Text style={styles.label}>Categoría</Text>
@@ -293,9 +291,11 @@ export default function Transacciones() {
               dropdownIconColor="#000"
             >
               <Picker.Item label="Selecciona la categoría" value="" color="#888" />
-              {(tipo ? categorias.filter((c) => c.tipo === tipo) : categorias).map((c) => (
-                <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
-              ))}
+              {categorias
+                .filter((c) => c.tipo?.toLowerCase().trim() === tipo?.toLowerCase().trim())
+                .map((c) => (
+                  <Picker.Item key={c.id} label={c.nombre} value={c.nombre} color="#000" />
+                ))}
             </Picker>
 
             <Text style={styles.label}>Descripción</Text>
